@@ -7,7 +7,8 @@ import {
   Calculator,
   CheckCircle2,
   Table,
-  HelpCircle
+  HelpCircle,
+  GitMerge
 } from 'lucide-react';
 
 interface MethodologyGuideProps {
@@ -25,7 +26,7 @@ export const MethodologyGuide: React.FC<MethodologyGuideProps> = ({
   result,
   ahpData,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'tahapan' | 'subkriteria' | 'metode' | 'ahp'>('tahapan');
+  const [activeSubTab, setActiveSubTab] = useState<'tahapan' | 'subkriteria' | 'metode' | 'ahp' | 'flowchart'>('tahapan');
   const activeCriteria = criteria.filter((c) => c.active !== false);
 
   return (
@@ -99,6 +100,18 @@ export const MethodologyGuide: React.FC<MethodologyGuideProps> = ({
           >
             <Table className="w-3.5 h-3.5" />
             <span>4. Pembobotan AHP</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('flowchart')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+              activeSubTab === 'flowchart'
+                ? 'bg-white text-purple-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <GitMerge className="w-3.5 h-3.5" />
+            <span>5. Flowchart</span>
           </button>
         </div>
       </div>
@@ -512,6 +525,242 @@ export const MethodologyGuide: React.FC<MethodologyGuideProps> = ({
               <span className="block text-emerald-700 text-[11px] font-semibold">Consistency Ratio (CR):</span>
               <span className="font-bold font-mono text-sm">{ahpData.ahp_result.consistency_ratio.toFixed(4)} &lt; 0.10</span>
               <span className="block text-[10px] text-emerald-800 mt-0.5">Matriks Teruji Konsisten</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* SUB-TAB 5: FLOWCHART SAW & MOORA */}
+      {activeSubTab === 'flowchart' && (
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <GitMerge className="w-4 h-4 text-purple-700" />
+              <span>Flowchart Alur Komputasi: SAW vs MOORA</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Visualisasi lengkap alur dari input data balita hingga output triase klinis, dengan percabangan di tahap normalisasi.
+            </p>
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 text-xs">
+            {[
+              { color: '#0369a1', label: 'Input / Data' },
+              { color: '#7c3aed', label: 'Fuzzifikasi' },
+              { color: '#0f766e', label: 'Matriks' },
+              { color: '#b45309', label: 'Pembobotan AHP' },
+              { color: '#be123c', label: 'Titik Percabangan' },
+              { color: '#0e7490', label: 'SAW-spesifik' },
+              { color: '#6d28d9', label: 'MOORA-spesifik' },
+              { color: '#15803d', label: 'Output Akhir' },
+            ].map(({ color, label }) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ background: color }} />
+                <span className="text-slate-600">{label}</span>
+              </span>
+            ))}
+          </div>
+
+          {/* ① SHARED TOP */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-1 bg-slate-50/40">
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              ① Tahap Bersama — Input → Matriks Keputusan
+            </div>
+            <div className="flex flex-col items-center gap-0">
+
+              {/* START */}
+              <div className="rounded-full text-white text-xs font-bold px-6 py-2 text-center" style={{ background: '#1e40af' }}>
+                🏥 Mulai: Data Balita Masuk
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              {/* DATA INPUT */}
+              <div className="rounded-lg text-white text-xs font-semibold px-5 py-2.5 text-center max-w-sm" style={{ background: '#0369a1' }}>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Input Klinis</div>
+                TB, BB, Umur, Jenis Kelamin, Status Lahir,<br />
+                Riwayat Penyakit, Pola Makan, Sanitasi,<br />
+                Ekonomi, Kunjungan Posyandu
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              {/* FUZZY */}
+              <div className="rounded-lg text-white text-xs font-semibold px-5 py-2.5 text-center max-w-sm" style={{ background: '#7c3aed' }}>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Fuzzifikasi Sub-Kriteria</div>
+                Konversi ke Nilai Ordinal 1–5 via Fungsi Keanggotaan Trapezoid
+                <div className="mt-1.5 space-y-0.5">
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">C1: TB/U Z-score → 1 (≥−1SD) … 5 (≤−3SD)</div>
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">C2: max(skor_BBL, skor_gestasi)</div>
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">C3–C7: Frekuensi, Pola Makan, Sanitasi, Ekonomi, Posyandu</div>
+                </div>
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              {/* DECISION MATRIX */}
+              <div className="rounded-lg text-white text-xs font-semibold px-5 py-2.5 text-center max-w-sm" style={{ background: '#0f766e' }}>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Matriks Keputusan</div>
+                X [m × n] — m balita × 7 kriteria (C1…C7)
+                <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">x_ij ∈ {'{1, 2, 3, 4, 5}'}</div>
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              {/* AHP */}
+              <div className="rounded-lg text-white text-xs font-semibold px-5 py-2.5 text-center max-w-sm" style={{ background: '#b45309' }}>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Pembobotan AHP</div>
+                Bobot w₁…w₇ dari Matriks Perbandingan Berpasangan
+                <div className="mt-1.5 space-y-0.5">
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">C1=35.62% C2=8.68% C3=22.62% C4=14.45%</div>
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">C5=4.97% C6=8.68% C7=4.97% — CR=0.0079 ✓</div>
+                </div>
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              {/* DIVERGE */}
+              <div className="rounded-lg text-white text-xs font-bold px-5 py-2 text-center max-w-xs italic" style={{ background: '#be123c' }}>
+                ⚡ TITIK PERCABANGAN
+                <span className="block text-[11px] font-normal not-italic mt-0.5">Pilih Metode Normalisasi</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ② DIVERGED: SAW vs MOORA */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* SAW */}
+            <div className="border-2 rounded-xl p-4 space-y-0" style={{ borderColor: '#0e7490' }}>
+              <div className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#0e7490' }}>
+                ② Metode SAW — Simple Additive Weighting
+              </div>
+              <div className="flex flex-col items-center gap-0">
+
+                <div className="rounded-lg text-white text-xs font-semibold px-4 py-2.5 text-center w-full" style={{ background: '#0e7490' }}>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Normalisasi Linear (Max)</div>
+                  Bagi tiap nilai dengan nilai terbesar di kolom
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">r_ij = x_ij / max(x_j)</div>
+                  <div className="text-[10px] mt-0.5 opacity-80">Hasil: r_ij ∈ [0, 1]</div>
+                </div>
+                <div className="w-px h-4 bg-slate-300" />
+                <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+                <div className="rounded-lg text-white text-xs font-semibold px-4 py-2.5 text-center w-full" style={{ background: '#0e7490' }}>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Penjumlahan Berbobot</div>
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">V_i = Σ w_j × r_ij</div>
+                  <div className="text-[10px] mt-0.5 opacity-80">V_i ∈ [0, 1] — semakin tinggi = semakin prioritas</div>
+                </div>
+                <div className="w-px h-4 bg-slate-300" />
+                <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+                <div className="rounded-lg text-white text-xs font-semibold px-4 py-2.5 text-center w-full" style={{ background: '#0c5f77' }}>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Ambang Batas Prioritas SAW</div>
+                  <div className="space-y-0.5 mt-1">
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">V ≥ 0.80 → Sangat Tinggi 🔴</div>
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">V ≥ 0.60 → Tinggi 🟠</div>
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">V ≥ 0.40 → Sedang 🟡</div>
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">V &lt; 0.40 → Rendah 🟢</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MOORA */}
+            <div className="border-2 rounded-xl p-4 space-y-0" style={{ borderColor: '#6d28d9' }}>
+              <div className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#6d28d9' }}>
+                ② Metode MOORA — Multi-Objective Optimization
+              </div>
+              <div className="flex flex-col items-center gap-0">
+
+                <div className="rounded-lg text-white text-xs font-semibold px-4 py-2.5 text-center w-full" style={{ background: '#6d28d9' }}>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Normalisasi Vektor Euclidean</div>
+                  Bagi tiap nilai dengan akar kuadrat jumlah kuadrat kolom
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">r_ij = x_ij / √(Σ x_kj²)</div>
+                  <div className="text-[10px] mt-0.5 opacity-80">Memperhitungkan distribusi seluruh kohort</div>
+                </div>
+                <div className="w-px h-4 bg-slate-300" />
+                <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+                <div className="rounded-lg text-white text-xs font-semibold px-4 py-2.5 text-center w-full" style={{ background: '#6d28d9' }}>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Penjumlahan Berbobot (y*)</div>
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">y_i = Σ w_j × r_ij</div>
+                  <div className="text-[10px] mt-0.5 opacity-80">Semua kriteria bersifat "benefit" → maximize</div>
+                </div>
+                <div className="w-px h-4 bg-slate-300" />
+                <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+                <div className="rounded-lg text-white text-xs font-semibold px-4 py-2.5 text-center w-full" style={{ background: '#5b21b6' }}>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Prioritas MOORA — Spread Relatif</div>
+                  <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">rel = (y_i − y_min) / (y_max − y_min)</div>
+                  <div className="space-y-0.5 mt-1">
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">rel ≥ 0.75 → Sangat Tinggi 🔴</div>
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">rel ≥ 0.50 → Tinggi 🟠</div>
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">rel ≥ 0.25 → Sedang 🟡</div>
+                    <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px]">rel &lt; 0.25 → Rendah 🟢</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ③ SHARED OUTPUT */}
+          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/40">
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              ③ Tahap Bersama — Perangkingan → Output Triase
+            </div>
+            <div className="flex flex-col items-center gap-0">
+              <div className="rounded-lg text-white text-xs font-semibold px-5 py-2.5 text-center max-w-sm w-full" style={{ background: '#15803d' }}>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Perangkingan Descending</div>
+                Urutan dari skor tertinggi → terendah
+                <div className="bg-white/20 rounded px-2 py-0.5 font-mono text-[10px] mt-1">Rank 1 = Balita Paling Darurat</div>
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              <div className="rounded-lg text-white text-xs font-semibold px-5 py-2.5 text-center max-w-sm w-full" style={{ background: '#16a34a' }}>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-75 mb-1">Label Tingkat Prioritas</div>
+                Sangat Tinggi / Tinggi / Sedang / Rendah
+                <div className="text-[10px] mt-0.5 opacity-80">(logika ambang berbeda per metode — lihat atas)</div>
+              </div>
+              <div className="w-px h-4 bg-slate-300" />
+              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-slate-300" />
+
+              <div className="rounded-full text-white text-xs font-bold px-6 py-2 text-center max-w-sm" style={{ background: '#dc2626' }}>
+                🏁 Output: Tabel Triase Klinis + Rekomendasi Intervensi Posyandu
+              </div>
+            </div>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="border border-slate-200 rounded-xl p-4 bg-white">
+            <div className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-2">
+              <span>📌</span> Perbedaan Kunci: SAW vs MOORA
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-2 pr-4 text-slate-500 font-semibold">Aspek</th>
+                    <th className="text-left py-2 pr-4 font-bold" style={{ color: '#0e7490' }}>SAW</th>
+                    <th className="text-left py-2 font-bold" style={{ color: '#6d28d9' }}>MOORA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[
+                    ['Normalisasi', 'Linear: r = x / max(kolom)', 'Euclidean: r = x / √(Σx²)'],
+                    ['Skor Referensi', 'V ∈ [0, 1] — skala absolut', 'y* — skala relatif terhadap kohort'],
+                    ['Penetapan Prioritas', 'Ambang tetap (0.80 / 0.60 / 0.40)', 'Spread min–max (0.75 / 0.50 / 0.25)'],
+                    ['Sensitivitas Outlier', 'Rendah — stabil antarwaktu', 'Lebih sensitif — dipengaruhi distribusi kohort'],
+                  ].map(([aspek, saw, moora]) => (
+                    <tr key={aspek}>
+                      <td className="py-2 pr-4 font-semibold text-slate-500">{aspek}</td>
+                      <td className="py-2 pr-4 text-slate-700 font-mono">{saw}</td>
+                      <td className="py-2 text-slate-700 font-mono">{moora}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
