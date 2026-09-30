@@ -165,12 +165,26 @@ export const MethodologyGuide: React.FC<MethodologyGuideProps> = ({
             </span>
           </div>
 
+          {/* Box Penegasan Metodologis & Skripsi */}
+          <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-4 text-xs text-amber-950 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-amber-900">
+              <CheckCircle2 className="w-4 h-4 text-amber-700 shrink-0" />
+              <span>Pernyataan Keabsahan Metodologis (Pedoman Penulisan Skripsi &amp; Publikasi)</span>
+            </div>
+            <p className="text-[11.5px] text-amber-900/90 leading-relaxed">
+              <strong>1. Status Rujukan vs Definisi Operasional:</strong> Kelompok 7 kriteria dan variabel utama model ditetapkan berdasarkan literatur resmi WHO, UNICEF, dan Kementerian Kesehatan RI (Permenkes No. 2/2020 &amp; Perpres No. 72/2021). Adapun batas numerik interval domain fungsi keanggotaan fuzzy dirancang sebagai <em>definisi operasional model</em> berdasarkan adaptasi indikator standar internasional (seperti tangga layanan <em>WHO/UNICEF JMP Service Ladder</em> untuk C5 Sanitasi, pedoman <em>WHO IYCF</em> untuk C4 Pola Asuh Makan, dan <em>Standar Pelayanan Minimal Kemenkes</em> untuk C7 Posyandu).
+            </p>
+            <p className="text-[11.5px] text-amber-900/90 leading-relaxed">
+              <strong>2. Bebas dari Circularity (Target Leakage):</strong> Sistem SPK ini secara fungsional dirancang sebagai <strong>Triase Prioritas Intervensi Klinis Balita</strong> (menentukan balita mana yang paling mendesak memperoleh tindakan medis darurat dan PMT pemulihan hari ini), dan <u>bukan</u> model prediksi prospektif risiko masa depan sebelum anak stunting. Oleh sebab itu, indikator keparahan antropometri saat ini (C1: TB/U Z-score) secara klinis sah dan mutlak sebagai parameter kegawatan triase.
+            </p>
+          </div>
+
           <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-900 flex items-start gap-2.5">
             <HelpCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
             <div>
               <strong>Mengapa batas domain beririsan (overlap)?</strong>
               <p className="text-[11px] text-blue-800 mt-0.5 leading-relaxed">
-                Untuk menghindari kondisi di mana perubahan kategori terjadi secara mendadak hanya karena selisih 1 angka kecil. Kurva <strong>Segitiga</strong> digunakan saat ada satu titik tengah yang paling mewakili kategori, sedangkan kurva <strong>Trapesium</strong> digunakan untuk rentang nilai ekstrim yang memiliki derajat keanggotaan maksimum (saturasi 1.0).
+                Untuk menghindari kondisi di mana perubahan kategori terjadi secara mendadak hanya karena selisih 1 angka kecil. Kurva <strong>Segitiga</strong> digunakan saat ada satu titik tengah yang paling mewakili kategori, sedangkan kurva <strong>Trapesium (Right/Left Shoulder)</strong> digunakan untuk rentang nilai ekstrem yang memiliki derajat keanggotaan maksimum (saturasi 1.0).
               </p>
             </div>
           </div>
