@@ -60,6 +60,8 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    volumes:
+      - ../dataset:/var/www/dataset:ro
     environment:
       - APP_NAME="SPK Stunting UNY"
       - APP_ENV=production

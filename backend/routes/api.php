@@ -32,4 +32,8 @@ Route::prefix('spk')->group(function () {
     // AHP Weighting & Consistency Ratio (CR < 0.10)
     Route::get('/ahp/matrix', [SpkController::class, 'ahpMatrix']);
     Route::post('/ahp/calculate', [SpkController::class, 'ahpCalculate']);
+
+    // Real Dataset Integration (data_balita.csv)
+    Route::get('/dataset/samples', [SpkController::class, 'datasetSamples']);
+    Route::get('/dataset/summary', [SpkController::class, 'datasetSummary']);
 });
