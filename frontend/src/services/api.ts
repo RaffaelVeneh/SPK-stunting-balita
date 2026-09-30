@@ -47,14 +47,20 @@ export const api = {
       this.setUser(data.user);
       return data;
     } catch (err: unknown) {
-      // Jika backend belum aktif (misal running dev client-only), sediakan demo login untuk superadmin
+      // Jika backend belum aktif (misal running dev client-only), sediakan demo login
       if (err instanceof TypeError && err.message.includes('fetch')) {
-        const isSuper = email === 'raffaelvincent.2024@student.uny.ac.id';
+        const superadmins: Record<string, string> = {
+          'raffaelvincent.2024@student.uny.ac.id': 'Raffael Vincent',
+          'muhammadfaizulhaq.2024@student.uny.ac.id': 'Muhammad Faizul Haq',
+          'galantonalatif.2024@student.uny.ac.id': 'Galantona Latif',
+        };
+        const isSuper = Boolean(superadmins[email.toLowerCase()]);
+        const name = superadmins[email.toLowerCase()] || (email.startsWith('admin') ? 'Dosen / Admin UNY' : 'Mahasiswa UNY (User Biasa)');
         const mockUser: User = {
           id: 1,
-          name: isSuper ? 'Raffael Vincent' : 'Civitas UNY',
+          name,
           email,
-          role: isSuper ? 'superadmin' : 'petugas',
+          role: isSuper ? 'superadmin' : 'user',
           is_superadmin: isSuper,
         };
         const mockToken = 'mock-dev-token-uny';

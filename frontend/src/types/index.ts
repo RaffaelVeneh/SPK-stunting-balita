@@ -4,7 +4,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'superadmin' | 'admin' | 'petugas';
+  role: 'superadmin' | 'admin' | 'petugas' | 'user';
   is_superadmin: boolean;
   wilayah_id?: number | null;
 }

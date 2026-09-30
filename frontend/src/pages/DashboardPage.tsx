@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
-import type { Criterion, Alternative, CalculationResult, PriorityLevel } from '../types';
-import { Calculator, AlertTriangle, CheckCircle, RefreshCw, BarChart3, HelpCircle } from 'lucide-react';
+import type { Criterion, Alternative, CalculationResult, PriorityLevel, User } from '../types';
+import { Calculator, AlertTriangle, CheckCircle, RefreshCw, BarChart3, HelpCircle, ShieldCheck, Eye } from 'lucide-react';
 
 const DEFAULT_CRITERIA: Criterion[] = [
   { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB)', weight: 0.3440, type: 'benefit' },
@@ -42,9 +42,10 @@ function getPriorityBadgeClass(level: PriorityLevel) {
 
 interface DashboardPageProps {
   method: 'saw' | 'moora';
+  user: User;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ method }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) => {
   const [criteria] = useState<Criterion[]>(DEFAULT_CRITERIA);
   const [balitas] = useState<Alternative[]>(INITIAL_BALITA);
   const [result, setResult] = useState<CalculationResult | null>(null);
@@ -67,6 +68,33 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
+      {/* Role Notice Banner */}
+      {user.is_superadmin ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs text-amber-900">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>
+              <strong>Akses Superadmin:</strong> Selamat datang, {user.name}. Anda memiliki izin penuh untuk mengelola kriteria, melakukan kalkulasi ulang kohort, dan menetapkan tindakan intervensi gizi.
+            </span>
+          </div>
+          <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded shrink-0">
+            Akses Penuh
+          </span>
+        </div>
+      ) : (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs text-blue-900">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-blue-700 shrink-0" />
+            <span>
+              <strong>Mode Pengguna Biasa:</strong> Anda masuk sebagai civitas UNY ({user.name}). Anda dapat memeriksa data balita, mengecek informasi kriteria gizi, dan melihat peringkat prioritas intervensi.
+            </span>
+          </div>
+          <span className="font-bold uppercase tracking-wider text-[10px] bg-blue-200 text-blue-900 px-2 py-0.5 rounded shrink-0">
+            Lihat Data &amp; Info
+          </span>
+        </div>
+      )}
+
       {/* Overview Banner */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

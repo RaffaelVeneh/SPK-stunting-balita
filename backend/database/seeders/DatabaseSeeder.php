@@ -14,24 +14,51 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Superadmin (Akun Mahasiswa UNY)
-        $superadmin = User::updateOrCreate(
-            ['email' => 'raffaelvincent.2024@student.uny.ac.id'],
+        // 1. Tiga Akun Superadmin UNY
+        $superadmins = [
             [
+                'email' => 'raffaelvincent.2024@student.uny.ac.id',
                 'name' => 'Raffael Vincent',
+            ],
+            [
+                'email' => 'muhammadfaizulhaq.2024@student.uny.ac.id',
+                'name' => 'Muhammad Faizul Haq',
+            ],
+            [
+                'email' => 'galantonalatif.2024@student.uny.ac.id',
+                'name' => 'Galantona Latif',
+            ],
+        ];
+
+        foreach ($superadmins as $adminData) {
+            User::updateOrCreate(
+                ['email' => $adminData['email']],
+                [
+                    'name' => $adminData['name'],
+                    'password' => Hash::make('password123'),
+                    'role' => 'superadmin',
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        // 2. Akun User Biasa (Mahasiswa & Staf UNY untuk Cek Data/Info)
+        User::updateOrCreate(
+            ['email' => 'mahasiswa.user@student.uny.ac.id'],
+            [
+                'name' => 'Mahasiswa Biasa UNY',
                 'password' => Hash::make('password123'),
-                'role' => 'superadmin',
+                'role' => 'user',
                 'email_verified_at' => now(),
             ]
         );
 
-        // 2. Admin Tambahan (Akun Dosen / Staf UNY)
         User::updateOrCreate(
-            ['email' => 'admin.gizi@uny.ac.id'],
+            ['email' => 'dosen.peneliti@uny.ac.id'],
             [
-                'name' => 'Administrator Gizi UNY',
+                'name' => 'Dosen Peneliti UNY',
                 'password' => Hash::make('password123'),
-                'role' => 'admin',
+                'role' => 'user',
                 'email_verified_at' => now(),
             ]
         );
@@ -45,11 +72,8 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // Hubungkan superadmin ke wilayah
-        $superadmin->update(['wilayah_id' => $wilayahId]);
-
         // 4. Versi Bobot Default (AHP / Manual dari Dokumen)
-        $bobotId = DB::table('bobot_kriteria_versi')->insertGetId([
+        DB::table('bobot_kriteria_versi')->insertGetId([
             'versi' => 'v1.0-Default-7Kriteria',
             'metode_bobot' => 'ahp',
             'is_active' => true,

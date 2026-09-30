@@ -50,14 +50,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const fillSuperadmin = () => {
-    setEmail('raffaelvincent.2024@student.uny.ac.id');
+  const fillSuperadmin = (targetEmail: string) => {
+    setEmail(targetEmail);
     setPassword('password123');
     setError(null);
   };
 
-  const fillStaff = () => {
-    setEmail('admin.gizi@uny.ac.id');
+  const fillUserBiasa = () => {
+    setEmail('mahasiswa.user@student.uny.ac.id');
     setPassword('password123');
     setError(null);
   };
@@ -165,41 +165,87 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {/* Preset Login Helper for Testing / Demo */}
           <div className="mt-6 pt-5 border-t border-slate-200">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 text-center">
-              Akses Cepat (Demo Presets)
+              Akses Cepat Pengujian (Presets)
             </span>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block mt-1">
+                Superadmin UNY (Akses Penuh):
+              </span>
+              
               <button
                 type="button"
-                onClick={fillSuperadmin}
-                className="w-full text-left p-2.5 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100/70 transition flex items-center justify-between"
+                onClick={() => fillSuperadmin('raffaelvincent.2024@student.uny.ac.id')}
+                className="w-full text-left p-2 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100/70 transition flex items-center justify-between"
               >
                 <div>
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
-                    <span className="text-xs font-bold text-amber-900">Login sebagai Superadmin</span>
+                    <span className="text-xs font-bold text-amber-900">Raffael Vincent</span>
                   </div>
                   <span className="text-[11px] text-amber-700 font-mono block">
                     raffaelvincent.2024@student.uny.ac.id
                   </span>
                 </div>
-                <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
-                  Isi Otomatis
+                <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                  Pilih
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={fillStaff}
-                className="w-full text-left p-2.5 rounded-lg border border-blue-200 bg-blue-50/60 hover:bg-blue-100/60 transition flex items-center justify-between"
+                onClick={() => fillSuperadmin('muhammadfaizulhaq.2024@student.uny.ac.id')}
+                className="w-full text-left p-2 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100/70 transition flex items-center justify-between"
               >
                 <div>
-                  <span className="text-xs font-bold text-blue-900 block">Login sebagai Admin Gizi</span>
-                  <span className="text-[11px] text-blue-700 font-mono block">
-                    admin.gizi@uny.ac.id
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                    <span className="text-xs font-bold text-amber-900">Muhammad Faizul Haq</span>
+                  </div>
+                  <span className="text-[11px] text-amber-700 font-mono block">
+                    muhammadfaizulhaq.2024@student.uny.ac.id
                   </span>
                 </div>
-                <span className="text-[10px] font-bold bg-blue-200 text-blue-900 px-2 py-0.5 rounded">
-                  Isi Otomatis
+                <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                  Pilih
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fillSuperadmin('galantonalatif.2024@student.uny.ac.id')}
+                className="w-full text-left p-2 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100/70 transition flex items-center justify-between"
+              >
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                    <span className="text-xs font-bold text-amber-900">Galantona Latif</span>
+                  </div>
+                  <span className="text-[11px] text-amber-700 font-mono block">
+                    galantonalatif.2024@student.uny.ac.id
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                  Pilih
+                </span>
+              </button>
+
+              <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider block pt-2">
+                User Biasa (Akses Lihat Data & Info):
+              </span>
+
+              <button
+                type="button"
+                onClick={fillUserBiasa}
+                className="w-full text-left p-2 rounded-lg border border-blue-200 bg-blue-50/60 hover:bg-blue-100/60 transition flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-xs font-bold text-blue-900 block">Mahasiswa Biasa UNY</span>
+                  <span className="text-[11px] text-blue-700 font-mono block">
+                    mahasiswa.user@student.uny.ac.id
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-blue-200 text-blue-900 px-1.5 py-0.5 rounded">
+                  Pilih
                 </span>
               </button>
             </div>

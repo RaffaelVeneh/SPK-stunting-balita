@@ -38,7 +38,7 @@ export function App() {
         setMethod={setMethod}
       />
       <main className="flex-1">
-        <DashboardPage method={method} />
+        <DashboardPage method={method} user={user} />
       </main>
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
         SPK Prioritas Intervensi Gizi Balita &copy; 2026 — Universitas Negeri Yogyakarta (UNY)

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,29 +26,37 @@ class AuthTest extends TestCase
         $response->assertJsonValidationErrors(['email']);
     }
 
-    public function test_superadmin_can_login_with_student_uny_domain(): void
+    public function test_all_three_superadmins_can_login_with_superadmin_role(): void
     {
-        $response = $this->postJson('/api/auth/login', [
-            'email' => 'raffaelvincent.2024@student.uny.ac.id',
-            'password' => 'password123',
-        ]);
+        $superadmins = [
+            'raffaelvincent.2024@student.uny.ac.id',
+            'muhammadfaizulhaq.2024@student.uny.ac.id',
+            'galantonalatif.2024@student.uny.ac.id',
+        ];
 
-        $response->assertStatus(200);
-        $response->assertJson([
-            'status' => 'success',
-            'user' => [
-                'email' => 'raffaelvincent.2024@student.uny.ac.id',
-                'role' => 'superadmin',
-                'is_superadmin' => true,
-            ],
-        ]);
-        $this->assertNotEmpty($response->json('token'));
+        foreach ($superadmins as $email) {
+            $response = $this->postJson('/api/auth/login', [
+                'email' => $email,
+                'password' => 'password123',
+            ]);
+
+            $response->assertStatus(200);
+            $response->assertJson([
+                'status' => 'success',
+                'user' => [
+                    'email' => $email,
+                    'role' => 'superadmin',
+                    'is_superadmin' => true,
+                ],
+            ]);
+            $this->assertNotEmpty($response->json('token'));
+        }
     }
 
-    public function test_staff_can_login_with_uny_ac_id_domain(): void
+    public function test_standard_user_logs_in_as_normal_user(): void
     {
         $response = $this->postJson('/api/auth/login', [
-            'email' => 'admin.gizi@uny.ac.id',
+            'email' => 'mahasiswa.user@student.uny.ac.id',
             'password' => 'password123',
         ]);
 
@@ -57,8 +64,9 @@ class AuthTest extends TestCase
         $response->assertJson([
             'status' => 'success',
             'user' => [
-                'email' => 'admin.gizi@uny.ac.id',
-                'role' => 'admin',
+                'email' => 'mahasiswa.user@student.uny.ac.id',
+                'role' => 'user',
+                'is_superadmin' => false,
             ],
         ]);
     }

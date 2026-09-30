@@ -66,10 +66,14 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, method, setMetho
             <div className="text-right hidden md:block">
               <div className="flex items-center gap-1.5 justify-end">
                 <span className="text-xs font-bold text-slate-900">{user.name}</span>
-                {user.is_superadmin && (
+                {user.is_superadmin ? (
                   <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md">
                     <ShieldCheck className="w-3 h-3 text-amber-700" />
                     SUPERADMIN
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-900 text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                    USER BIASA
                   </span>
                 )}
               </div>

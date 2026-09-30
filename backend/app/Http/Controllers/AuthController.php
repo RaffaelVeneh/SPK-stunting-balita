@@ -68,13 +68,13 @@ class AuthController extends Controller
         ]);
 
         $email = strtolower(trim($request->email));
-        $isSuper = ($email === 'raffaelvincent.2024@student.uny.ac.id');
+        $isSuper = in_array($email, User::SUPERADMIN_EMAILS, true);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $email,
             'password' => Hash::make($request->password),
-            'role' => $isSuper ? 'superadmin' : 'petugas',
+            'role' => $isSuper ? 'superadmin' : 'user',
         ]);
 
         $token = $user->createToken('spk-uny-token')->plainTextToken;

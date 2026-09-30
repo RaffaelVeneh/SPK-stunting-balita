@@ -49,12 +49,18 @@ class User extends Authenticatable
         ];
     }
 
+    public const SUPERADMIN_EMAILS = [
+        'raffaelvincent.2024@student.uny.ac.id',
+        'muhammadfaizulhaq.2024@student.uny.ac.id',
+        'galantonalatif.2024@student.uny.ac.id',
+    ];
+
     /**
      * Memeriksa apakah user adalah Superadmin UNY.
      */
     public function isSuperAdmin(): bool
     {
         return $this->role === 'superadmin' || 
-               $this->email === 'raffaelvincent.2024@student.uny.ac.id';
+               in_array(strtolower($this->email), self::SUPERADMIN_EMAILS, true);
     }
 }
