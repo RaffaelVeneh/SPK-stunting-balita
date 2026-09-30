@@ -24,8 +24,12 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-// SPK Decision Support System (SAW & MOORA)
+// SPK Decision Support System (AHP Weighting + SAW & MOORA Scoring)
 Route::prefix('spk')->group(function () {
     Route::get('/criteria', [SpkController::class, 'criteria']);
     Route::post('/calculate', [SpkController::class, 'calculate']);
+    
+    // AHP Weighting & Consistency Ratio (CR < 0.10)
+    Route::get('/ahp/matrix', [SpkController::class, 'ahpMatrix']);
+    Route::post('/ahp/calculate', [SpkController::class, 'ahpCalculate']);
 });

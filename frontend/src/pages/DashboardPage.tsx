@@ -50,6 +50,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
   const [balitas] = useState<Alternative[]>(INITIAL_BALITA);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showAhpDetail, setShowAhpDetail] = useState(false);
 
   const runCalculation = useCallback(async () => {
     setLoading(true);
@@ -151,6 +152,98 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
             </div>
           ))}
         </div>
+
+        {/* Toggle AHP Detail Button */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="font-semibold text-slate-700">Metode Pembobotan:</span>
+            <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[11px]">
+              AHP (Analytic Hierarchy Process)
+            </span>
+            <span className="text-slate-400">•</span>
+            <span className="text-emerald-700 font-medium">Consistency Ratio (CR): 0.011 &lt; 0.10 (Konsisten)</span>
+          </div>
+          <button
+            onClick={() => setShowAhpDetail(!showAhpDetail)}
+            className="text-xs font-semibold text-blue-700 hover:text-blue-900 transition flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+          >
+            {showAhpDetail ? 'Sembunyikan Matriks AHP ▲' : 'Lihat Matriks Perbandingan Berpasangan AHP ▼'}
+          </button>
+        </div>
+
+        {/* Collapsible AHP Matrix */}
+        {showAhpDetail && (
+          <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="font-bold uppercase tracking-wider text-slate-700 text-[11px]">
+                Matriks Perbandingan Berpasangan (Skala Saaty 1–9) oleh Ahli Gizi
+              </span>
+              <span className="bg-emerald-100 text-emerald-800 font-mono font-bold px-2 py-0.5 rounded text-[11px] self-start sm:self-auto">
+                CR = 0.011 (Valid &amp; Lolos Uji Konsistensi)
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-center text-xs border border-slate-200 bg-white rounded-lg">
+                <thead className="bg-slate-100 text-slate-700 font-bold">
+                  <tr>
+                    <th className="p-2 border border-slate-200 text-left">Kriteria</th>
+                    <th className="p-2 border border-slate-200">C1</th>
+                    <th className="p-2 border border-slate-200">C2</th>
+                    <th className="p-2 border border-slate-200">C3</th>
+                    <th className="p-2 border border-slate-200">C4</th>
+                    <th className="p-2 border border-slate-200">C5</th>
+                    <th className="p-2 border border-slate-200">C6</th>
+                    <th className="p-2 border border-slate-200">C7</th>
+                    <th className="p-2 border border-slate-200 bg-blue-50 text-blue-900">Bobot Akhir (w_j)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { code: 'C1 (Gizi)', vals: ['1.00', '4.00', '2.00', '3.00', '6.00', '4.00', '6.00'], w: '34.40%' },
+                    { code: 'C2 (Lahir)', vals: ['0.25', '1.00', '0.33', '0.50', '2.00', '1.00', '2.00'], w: '8.81%' },
+                    { code: 'C3 (Infeksi)', vals: ['0.50', '3.00', '1.00', '2.00', '4.00', '3.00', '4.00'], w: '22.89%' },
+                    { code: 'C4 (Pola Makan)', vals: ['0.33', '2.00', '0.50', '1.00', '3.00', '2.00', '3.00'], w: '14.66%' },
+                    { code: 'C5 (Sanitasi)', vals: ['0.17', '0.50', '0.25', '0.33', '1.00', '0.50', '1.00'], w: '5.21%' },
+                    { code: 'C6 (Ekonomi)', vals: ['0.25', '1.00', '0.33', '0.50', '2.00', '1.00', '2.00'], w: '8.81%' },
+                    { code: 'C7 (Layanan)', vals: ['0.17', '0.50', '0.25', '0.33', '1.00', '0.50', '1.00'], w: '5.21%' },
+                  ].map((row) => (
+                    <tr key={row.code} className="hover:bg-slate-50 font-mono">
+                      <td className="p-2 border border-slate-200 font-sans font-bold text-left bg-slate-50/50">{row.code}</td>
+                      {row.vals.map((v, i) => (
+                        <td key={i} className="p-2 border border-slate-200">{v}</td>
+                      ))}
+                      <td className="p-2 border border-slate-200 bg-blue-50/60 text-blue-900 font-bold">{row.w}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[11px] text-slate-600">
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <span className="block text-slate-400">Lambda Max (&lambda;<sub>max</sub>):</span>
+                <span className="font-bold text-slate-900 font-mono">7.0910</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <span className="block text-slate-400">Consistency Index (CI):</span>
+                <span className="font-bold text-slate-900 font-mono">0.0152</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <span className="block text-slate-400">Random Index (RI n=7):</span>
+                <span className="font-bold text-slate-900 font-mono">1.3200</span>
+              </div>
+              <div className="bg-emerald-50 p-2 rounded-lg border border-emerald-200 text-emerald-900">
+                <span className="block text-emerald-600 font-semibold">Consistency Ratio (CR):</span>
+                <span className="font-bold font-mono">0.0115 &lt; 0.10</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 italic">
+              *Catatan Sistem: Sesuai dokumentasi, bobot AHP ini dikunci pada tabel <code>bobot_kriteria_versi</code> agar seluruh batch penilaian balita konsisten dan komparabel antar waktu dan antar wilayah puskesmas.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Hasil Ranking Prioritas */}

@@ -81,4 +81,32 @@ class SpkTest extends TestCase
         $this->assertEquals('B01', $rankings[0]['id']);
         $this->assertEquals(1, $rankings[0]['rank']);
     }
+
+    public function test_ahp_matrix_returns_consistent_weights(): void
+    {
+        $response = $this->getJson('/api/spk/ahp/matrix');
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+            'ahp_result' => [
+                'is_valid' => true,
+            ],
+        ]);
+
+        $cr = $response->json('ahp_result.consistency_ratio');
+        $this->assertLessThan(0.10, $cr, "Consistency Ratio harus < 0.10, didapatkan: {$cr}");
+
+        $weights = $response->json('ahp_result.weights');
+        $this->assertArrayHasKey('C1', $weights);
+        $this->assertArrayHasKey('C2', $weights);
+        $this->assertArrayHasKey('C3', $weights);
+        $this->assertArrayHasKey('C4', $weights);
+        $this->assertArrayHasKey('C5', $weights);
+        $this->assertArrayHasKey('C6', $weights);
+        $this->assertArrayHasKey('C7', $weights);
+
+        // C1 (Kondisi Gizi) harus memiliki bobot tertinggi
+        $this->assertEquals(max($weights), $weights['C1']);
+    }
 }

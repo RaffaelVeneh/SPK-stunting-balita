@@ -64,31 +64,35 @@ class DatabaseSeeder extends Seeder
         );
 
         // 3. Wilayah Contoh
-        $wilayahId = DB::table('wilayah')->insertGetId([
-            'kode' => 'W-YOGYA-01',
-            'nama' => 'Puskesmas Percontohan UNY - Sleman',
-            'tingkat' => 'kecamatan',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::table('wilayah')->updateOrInsert(
+            ['kode' => 'W-YOGYA-01'],
+            [
+                'nama' => 'Puskesmas Percontohan UNY - Sleman',
+                'tingkat' => 'kecamatan',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
 
         // 4. Versi Bobot Default (AHP / Manual dari Dokumen)
-        DB::table('bobot_kriteria_versi')->insertGetId([
-            'versi' => 'v1.0-Default-7Kriteria',
-            'metode_bobot' => 'ahp',
-            'is_active' => true,
-            'deskripsi' => 'Bobot 7 kriteria triase balita berbasis preferensi ahli gizi',
-            'weights_json' => json_encode([
-                'C1' => 0.3440,
-                'C2' => 0.0881,
-                'C3' => 0.2289,
-                'C4' => 0.1466,
-                'C5' => 0.0521,
-                'C6' => 0.0881,
-                'C7' => 0.0521,
-            ]),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::table('bobot_kriteria_versi')->updateOrInsert(
+            ['versi' => 'v1.0-Default-7Kriteria'],
+            [
+                'metode_bobot' => 'ahp',
+                'is_active' => true,
+                'deskripsi' => 'Bobot 7 kriteria triase balita berbasis preferensi ahli gizi',
+                'weights_json' => json_encode([
+                    'C1' => 0.3440,
+                    'C2' => 0.0881,
+                    'C3' => 0.2289,
+                    'C4' => 0.1466,
+                    'C5' => 0.0521,
+                    'C6' => 0.0881,
+                    'C7' => 0.0521,
+                ]),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
     }
 }

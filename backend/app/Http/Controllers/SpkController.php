@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\SPK\AhpService;
 use App\Services\SPK\SpkEngine;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -9,11 +10,12 @@ use InvalidArgumentException;
 class SpkController extends Controller
 {
     public function __construct(
-        protected SpkEngine $spkEngine
+        protected SpkEngine $spkEngine,
+        protected AhpService $ahpService
     ) {}
 
     /**
-     * Mengambil daftar 7 kriteria standar triase balita dan bobot defaultnya.
+     * Mengambil daftar 7 kriteria standar triase balita dan bobot defaultnya (Hasil AHP).
      */
     public function criteria()
     {
@@ -29,12 +31,53 @@ class SpkController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'weighting_method' => 'AHP (Analytic Hierarchy Process)',
             'criteria' => $criteria,
         ]);
     }
 
     /**
-     * Menjalankan kalkulasi SAW atau MOORA.
+     * Mengambil matriks perbandingan berpasangan AHP resmi dan status konsistensinya.
+     */
+    public function ahpMatrix()
+    {
+        $default = $this->ahpService->getDefaultAhpMatrix();
+        $calc = $this->ahpService->computeWeights($default['criteria'], $default['matrix']);
+
+        return response()->json([
+            'status' => 'success',
+            'criteria' => $default['criteria'],
+            'matrix' => $default['matrix'],
+            'ahp_result' => $calc,
+        ]);
+    }
+
+    /**
+     * Menghitung ulang bobot dan rasio konsistensi dari matriks perbandingan berpasangan AHP.
+     */
+    public function ahpCalculate(Request $request)
+    {
+        $request->validate([
+            'criteria' => ['required', 'array', 'min:2'],
+            'matrix' => ['required', 'array', 'min:2'],
+        ]);
+
+        try {
+            $calc = $this->ahpService->computeWeights($request->criteria, $request->matrix);
+            return response()->json([
+                'status' => 'success',
+                'ahp_result' => $calc,
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Menjalankan kalkulasi SAW atau MOORA menggunakan bobot AHP.
      */
     public function calculate(Request $request)
     {
@@ -58,6 +101,7 @@ class SpkController extends Controller
 
             return response()->json([
                 'status' => 'success',
+                'weighting_method' => 'AHP',
                 'data' => $result,
             ]);
         } catch (InvalidArgumentException $e) {
