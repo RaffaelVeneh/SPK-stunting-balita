@@ -102,16 +102,116 @@ const RUBRIC_DATA = [
 ];
 
 const INITIAL_MANUAL_BALITA: Alternative[] = [
-  { id: 'MAN-01', name: 'Balita Kohort #01', values: { C1: 5, C2: 4, C3: 5, C4: 4, C5: 3, C6: 4, C7: 3 } },
-  { id: 'MAN-02', name: 'Balita Kohort #02', values: { C1: 1, C2: 1, C3: 1, C4: 2, C5: 1, C6: 1, C7: 1 } },
-  { id: 'MAN-03', name: 'Balita Kohort #03', values: { C1: 3, C2: 3, C3: 4, C4: 3, C5: 2, C6: 3, C7: 3 } },
-  { id: 'MAN-04', name: 'Balita Kohort #04', values: { C1: 5, C2: 5, C3: 5, C4: 5, C5: 4, C6: 5, C7: 4 } },
-  { id: 'MAN-05', name: 'Balita Kohort #05', values: { C1: 2, C2: 1, C3: 2, C4: 1, C5: 2, C6: 2, C7: 1 } },
-  { id: 'MAN-06', name: 'Balita Kohort #06', values: { C1: 2, C2: 2, C3: 1, C4: 2, C5: 1, C6: 2, C7: 2 } },
-  { id: 'MAN-07', name: 'Balita Kohort #07', values: { C1: 4, C2: 3, C3: 3, C4: 3, C5: 3, C6: 3, C7: 2 } },
-  { id: 'MAN-08', name: 'Balita Kohort #08', values: { C1: 2, C2: 3, C3: 2, C4: 3, C5: 2, C6: 2, C7: 2 } },
-  { id: 'MAN-09', name: 'Balita Kohort #09', values: { C1: 4, C2: 4, C3: 4, C4: 4, C5: 3, C6: 4, C7: 3 } },
-  { id: 'MAN-10', name: 'Balita Kohort #10', values: { C1: 1, C2: 2, C3: 2, C4: 2, C5: 2, C6: 1, C7: 2 } },
+  {
+    id: 'MAN-01',
+    name: 'Balita #01 (An. Arka)',
+    values: { C1: 5, C2: 4, C3: 5, C4: 4, C5: 3, C6: 4, C7: 3 },
+    raw_attributes: {
+      umur_bulan: 18,
+      jenis_kelamin: 'Laki-Laki',
+      tinggi_badan_cm: 71.5,
+      status_gizi: 'severely stunted (kritis)',
+    },
+  },
+  {
+    id: 'MAN-02',
+    name: 'Balita #02 (An. Bella)',
+    values: { C1: 1, C2: 1, C3: 1, C4: 2, C5: 1, C6: 1, C7: 1 },
+    raw_attributes: {
+      umur_bulan: 24,
+      jenis_kelamin: 'Perempuan',
+      tinggi_badan_cm: 88.0,
+      status_gizi: 'tinggi / optimal',
+    },
+  },
+  {
+    id: 'MAN-03',
+    name: 'Balita #03 (An. Candra)',
+    values: { C1: 3, C2: 3, C3: 4, C4: 3, C5: 2, C6: 3, C7: 3 },
+    raw_attributes: {
+      umur_bulan: 14,
+      jenis_kelamin: 'Laki-Laki',
+      tinggi_badan_cm: 74.0,
+      status_gizi: 'waspada (garis kuning)',
+    },
+  },
+  {
+    id: 'MAN-04',
+    name: 'Balita #04 (An. Dika)',
+    values: { C1: 5, C2: 5, C3: 5, C4: 5, C5: 4, C6: 5, C7: 4 },
+    raw_attributes: {
+      umur_bulan: 8,
+      jenis_kelamin: 'Laki-Laki',
+      tinggi_badan_cm: 63.0,
+      status_gizi: 'severely stunted (darurat mutlak)',
+    },
+  },
+  {
+    id: 'MAN-05',
+    name: 'Balita #05 (An. Elsa)',
+    values: { C1: 2, C2: 1, C3: 2, C4: 1, C5: 2, C6: 2, C7: 1 },
+    raw_attributes: {
+      umur_bulan: 12,
+      jenis_kelamin: 'Perempuan',
+      tinggi_badan_cm: 74.5,
+      status_gizi: 'normal',
+    },
+  },
+  {
+    id: 'MAN-06',
+    name: 'Balita #06 (An. Fandi)',
+    values: { C1: 2, C2: 2, C3: 1, C4: 2, C5: 1, C6: 2, C7: 2 },
+    raw_attributes: {
+      umur_bulan: 20,
+      jenis_kelamin: 'Laki-Laki',
+      tinggi_badan_cm: 82.5,
+      status_gizi: 'normal',
+    },
+  },
+  {
+    id: 'MAN-07',
+    name: 'Balita #07 (An. Gita)',
+    values: { C1: 4, C2: 3, C3: 3, C4: 3, C5: 3, C6: 3, C7: 2 },
+    raw_attributes: {
+      umur_bulan: 16,
+      jenis_kelamin: 'Perempuan',
+      tinggi_badan_cm: 72.0,
+      status_gizi: 'stunted (pendek)',
+    },
+  },
+  {
+    id: 'MAN-08',
+    name: 'Balita #08 (An. Harun)',
+    values: { C1: 2, C2: 3, C3: 2, C4: 3, C5: 2, C6: 2, C7: 2 },
+    raw_attributes: {
+      umur_bulan: 10,
+      jenis_kelamin: 'Laki-Laki',
+      tinggi_badan_cm: 71.0,
+      status_gizi: 'normal batas bawah',
+    },
+  },
+  {
+    id: 'MAN-09',
+    name: 'Balita #09 (An. Intan)',
+    values: { C1: 4, C2: 4, C3: 4, C4: 4, C5: 3, C6: 4, C7: 3 },
+    raw_attributes: {
+      umur_bulan: 22,
+      jenis_kelamin: 'Perempuan',
+      tinggi_badan_cm: 77.0,
+      status_gizi: 'stunted (pendek)',
+    },
+  },
+  {
+    id: 'MAN-10',
+    name: 'Balita #10 (An. Joko)',
+    values: { C1: 1, C2: 2, C3: 2, C4: 2, C5: 2, C6: 1, C7: 2 },
+    raw_attributes: {
+      umur_bulan: 6,
+      jenis_kelamin: 'Laki-Laki',
+      tinggi_badan_cm: 67.0,
+      status_gizi: 'normal / sehat',
+    },
+  },
 ];
 
 function getPriorityBadgeClass(level: PriorityLevel) {
@@ -155,6 +255,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
   const [showRubricModal, setShowRubricModal] = useState(false);
   const [selectedRubricCriterion, setSelectedRubricCriterion] = useState<string>('C1');
   const [showScaleGuide, setShowScaleGuide] = useState(true);
+  const [selectedBalitaDetail, setSelectedBalitaDetail] = useState<{
+    id: string;
+    name: string;
+    score: number;
+    rank: number;
+    priority_level: PriorityLevel;
+    values: Record<string, number>;
+    raw_attributes?: {
+      umur_bulan?: number;
+      jenis_kelamin?: string;
+      tinggi_badan_cm?: number;
+      status_gizi?: string;
+    };
+  } | null>(null);
 
   // Load Criteria & AHP Matrix saat mount
   useEffect(() => {
@@ -826,24 +940,47 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900">{item.name}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-bold text-slate-900">{item.name}</div>
+                        <button
+                          onClick={() => {
+                            const b = balitas.find((x) => x.id === item.id);
+                            setSelectedBalitaDetail({
+                              id: item.id,
+                              name: item.name,
+                              score: item.score,
+                              rank: item.rank,
+                              priority_level: item.priority_level,
+                              values: b ? b.values : {},
+                              raw_attributes: item.raw_attributes,
+                            });
+                          }}
+                          className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded cursor-pointer transition shrink-0"
+                          title="Lihat rincian nilai 7 kriteria dan penjelasan kondisi medis balita ini"
+                        >
+                          Rincian Rapor 1–5
+                        </button>
+                      </div>
+
                       {item.raw_attributes && (
                         <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] text-slate-500 font-normal">
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">
                             {item.raw_attributes.umur_bulan} Bulan
                           </span>
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded uppercase">
+                          <span className="bg-slate-100 px-1.5 py-0.5 rounded uppercase font-semibold">
                             {item.raw_attributes.jenis_kelamin}
                           </span>
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="bg-slate-100 px-1.5 py-0.5 rounded font-mono font-medium">
                             TB: {item.raw_attributes.tinggi_badan_cm} cm
                           </span>
                           <span
                             className={`px-1.5 py-0.5 rounded font-semibold ${
-                              item.raw_attributes.status_gizi === 'severely stunted'
+                              item.raw_attributes.status_gizi?.includes('severely') || item.raw_attributes.status_gizi?.includes('kritis')
                                 ? 'bg-red-100 text-red-800'
-                                : item.raw_attributes.status_gizi === 'stunted'
+                                : item.raw_attributes.status_gizi?.includes('stunted')
                                 ? 'bg-orange-100 text-orange-800'
+                                : item.raw_attributes.status_gizi?.includes('waspada')
+                                ? 'bg-amber-100 text-amber-800'
                                 : item.raw_attributes.status_gizi === 'tinggi'
                                 ? 'bg-blue-100 text-blue-800'
                                 : 'bg-emerald-100 text-emerald-800'
@@ -853,6 +990,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
                           </span>
                         </div>
                       )}
+
+                      {/* Baris Badge Skor Kriteria C1 s/d C7 */}
+                      <div className="flex flex-wrap items-center gap-1 mt-2">
+                        {criteria.map((c) => {
+                          const b = balitas.find((x) => x.id === item.id);
+                          const rawVal = b?.values[c.code];
+                          const hasVal = typeof rawVal === 'number';
+                          const val = hasVal ? rawVal : 1.0;
+                          const isActive = c.active !== false;
+
+                          return (
+                            <span
+                              key={c.code}
+                              title={`${c.code} (${c.name}): Skala ${val} ${!hasVal ? '[Imputasi Netral 1.0]' : ''} | Status: ${isActive ? 'Aktif Dinilai' : 'Nonaktif (Diabaikan)'}`}
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition ${
+                                !isActive
+                                  ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-60'
+                                  : val >= 4
+                                  ? 'bg-red-50 text-red-700 border-red-200 font-extrabold'
+                                  : val === 3
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              }`}
+                            >
+                              <span>{c.code}:</span>
+                              <span className="font-mono">{val}{!hasVal ? '*' : ''}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
                     </td>
                     <td className="py-3 px-3">
                       {item.is_partial ? (
@@ -967,6 +1134,145 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
       </div>
     </>
   )}
+
+      {/* MODAL DETAIL RAPOR KLINIS BALITA */}
+      {selectedBalitaDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                    ID: {selectedBalitaDetail.id}
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getPriorityBadgeClass(selectedBalitaDetail.priority_level)}`}>
+                    Prioritas {selectedBalitaDetail.priority_level}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded">
+                    Rank #{selectedBalitaDetail.rank}
+                  </span>
+                </div>
+                <h3 className="text-base font-black text-slate-900">
+                  Rapor Penilaian 7 Kriteria: {selectedBalitaDetail.name}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Skor Akhir SPK: <strong className="font-mono text-slate-900">{selectedBalitaDetail.score.toFixed(4)}</strong> (Metode {method.toUpperCase()})
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedBalitaDetail(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5">
+              {/* Demografi */}
+              {selectedBalitaDetail.raw_attributes && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Usia</span>
+                    <span className="font-bold text-slate-800 font-mono">{selectedBalitaDetail.raw_attributes.umur_bulan} Bulan</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Jenis Kelamin</span>
+                    <span className="font-bold text-slate-800 uppercase">{selectedBalitaDetail.raw_attributes.jenis_kelamin}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Tinggi Badan</span>
+                    <span className="font-bold text-slate-800 font-mono">{selectedBalitaDetail.raw_attributes.tinggi_badan_cm} cm</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Status Gizi</span>
+                    <span className="font-bold text-slate-800">{selectedBalitaDetail.raw_attributes.status_gizi}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Rincian Kriteria 1-5 */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Nilai Tiap Kriteria &amp; Penjelasan Rubrik Medis:
+                  </h4>
+                  <span className="text-[11px] text-slate-400 italic">
+                    Skala 1 = Risiko Minimal/Sehat &bull; Skala 5 = Kritis/Darurat
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {criteria.map((c) => {
+                    const rawVal = selectedBalitaDetail.values[c.code];
+                    const hasVal = typeof rawVal === 'number';
+                    const val = hasVal ? rawVal : 1;
+                    const isActive = c.active !== false;
+
+                    const rubricCriterion = RUBRIC_DATA.find((r) => r.code === c.code);
+                    const levelInfo = rubricCriterion?.levels.find((l) => l.score === Math.round(val));
+
+                    return (
+                      <div
+                        key={c.code}
+                        className={`p-3.5 rounded-xl border transition ${
+                          !isActive
+                            ? 'bg-slate-50/50 border-slate-200 opacity-60'
+                            : val >= 4
+                            ? 'bg-red-50/50 border-red-200'
+                            : val === 3
+                            ? 'bg-amber-50/50 border-amber-200'
+                            : 'bg-emerald-50/50 border-emerald-200'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold px-2 py-0.5 rounded bg-white border border-slate-200 shadow-2xs font-mono">
+                              {c.code}
+                            </span>
+                            <span className="text-xs font-bold text-slate-900">{c.name}</span>
+                            {!isActive && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
+                                Nonaktif (Bobot 0%)
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
+                              val >= 4 ? 'bg-red-600 text-white' : val === 3 ? 'bg-amber-600 text-white' : 'bg-emerald-700 text-white'
+                            }`}>
+                              Skor {val}/5 {hasVal ? '' : '*(Netral)'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {levelInfo && (
+                          <div className="mt-2 text-xs pl-7 text-slate-600">
+                            <strong className="text-slate-800">{levelInfo.label}: </strong>
+                            <span>{levelInfo.desc}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setSelectedBalitaDetail(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Tutup Rapor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL PANDUAN RUBRIK SKALA 1–5 */}
       {showRubricModal && (
