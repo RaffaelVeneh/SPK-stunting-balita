@@ -148,6 +148,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
   const [showAhpDetail, setShowAhpDetail] = useState(false);
   const [showRubricModal, setShowRubricModal] = useState(false);
   const [selectedRubricCriterion, setSelectedRubricCriterion] = useState<string>('C1');
+  const [showScaleGuide, setShowScaleGuide] = useState(true);
 
   // Load Criteria & AHP Matrix saat mount
   useEffect(() => {
@@ -401,6 +402,139 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
           </div>
         </div>
       )}
+
+      {/* Penjelasan Eksplisit Skala Penilaian 1-5 */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-blue-700 shrink-0" />
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                Fungsi &amp; Arti Eksplisit Skala Penilaian 1–5
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Mengapa ada skala 1–5? Karena data mentah posyandu memiliki satuan berbeda-beda (cm, kg, frekuensi sakit, teks perilaku). Skala ini menstandardisasi semua kriteria menjadi satu ukuran <strong>Tingkat Kegawatan Klinis &amp; Urgensi Intervensi</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowScaleGuide(!showScaleGuide)}
+            className="text-xs font-semibold text-blue-700 hover:text-blue-900 transition cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            {showScaleGuide ? 'Sembunyikan Panduan ▲' : 'Buka Panduan Skala ▼'}
+          </button>
+        </div>
+
+        {showScaleGuide && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {/* Level 1 */}
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">1</span>
+                    <span className="text-[10px] font-bold uppercase bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">Aman</span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-xs mt-2">Optimal / Sangat Sehat</h3>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                    Kondisi prima, tidak ada risiko malnutrisi sama sekali.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-emerald-200/80">
+                  <span className="block text-[10px] font-bold uppercase text-emerald-800">Tindakan Lapangan:</span>
+                  <span className="text-[11px] text-slate-700 font-medium">Tidak butuh bantuan khusus. Cukup pemantauan rutin Posyandu.</span>
+                </div>
+              </div>
+
+              {/* Level 2 */}
+              <div className="p-3.5 rounded-xl border border-teal-200 bg-teal-50/70 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="w-6 h-6 rounded-full bg-teal-600 text-white font-black text-xs flex items-center justify-center">2</span>
+                    <span className="text-[10px] font-bold uppercase bg-teal-200 text-teal-900 px-2 py-0.5 rounded">Baik</span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-xs mt-2">Normal / Gizi Baik</h3>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                    Pertumbuhan stabil, fluktuasi berat badan wajar dan aman.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-teal-200/80">
+                  <span className="block text-[10px] font-bold uppercase text-teal-800">Tindakan Lapangan:</span>
+                  <span className="text-[11px] text-slate-700 font-medium">Pemeriksaan standar bulanan &amp; apresiasi pola asuh orang tua.</span>
+                </div>
+              </div>
+
+              {/* Level 3 */}
+              <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-black text-xs flex items-center justify-center">3</span>
+                    <span className="text-[10px] font-bold uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded">Lampu Kuning</span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-xs mt-2">Waspada (Borderline)</h3>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                    Kurva KMS mendatar, ada tanda risiko awal atau asupan gizi kurang seimbang.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-amber-200/80">
+                  <span className="block text-[10px] font-bold uppercase text-amber-800">Tindakan Lapangan:</span>
+                  <span className="text-[11px] text-slate-700 font-medium">Konseling gizi intensif &amp; kunjungan rumah kader agar tidak merosot.</span>
+                </div>
+              </div>
+
+              {/* Level 4 */}
+              <div className="p-3.5 rounded-xl border border-orange-200 bg-orange-50/70 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center">4</span>
+                    <span className="text-[10px] font-bold uppercase bg-orange-200 text-orange-900 px-2 py-0.5 rounded">Bahaya</span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-xs mt-2">Berisiko Tinggi / Mendesak</h3>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                    Positif stunted (Z-score &lt; -2 SD), riwayat BBLR, diare kronis, atau sanitasi buruk.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-orange-200/80">
+                  <span className="block text-[10px] font-bold uppercase text-orange-800">Tindakan Lapangan:</span>
+                  <span className="text-[11px] text-slate-700 font-medium">Wajib intervensi langsung: PMT Pemulihan telur/susu Puskesmas.</span>
+                </div>
+              </div>
+
+              {/* Level 5 */}
+              <div className="p-3.5 rounded-xl border border-red-200 bg-red-50/70 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="w-6 h-6 rounded-full bg-red-600 text-white font-black text-xs flex items-center justify-center">5</span>
+                    <span className="text-[10px] font-bold uppercase bg-red-200 text-red-900 px-2 py-0.5 rounded">Darurat</span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-xs mt-2">Kritis / Gawat Darurat</h3>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                    Severely stunted (Z-score &lt; -3 SD), gizi buruk, atau infeksi penyerta berat.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-red-200/80">
+                  <span className="block text-[10px] font-bold uppercase text-red-800">Tindakan Lapangan:</span>
+                  <span className="text-[11px] text-slate-700 font-medium">Rujukan medis darurat ke Dokter Spesialis Anak / RSUD segera.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Prinsip Arah Preferensi SPK */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-700">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded text-[11px] shrink-0">Prinsip Triase SPK:</span>
+                <span>Semakin <strong>TINGGI</strong> skornya (mendekati 5), semakin <strong>GAWAT</strong> kondisi balita, sehingga sistem menempatkannya pada <strong>PERINGKAT 1</strong> (paling mendesak diselamatkan).</span>
+              </div>
+              <button
+                onClick={() => setShowRubricModal(true)}
+                className="text-blue-700 font-bold hover:underline shrink-0 text-left sm:text-right cursor-pointer"
+              >
+                Lihat Definisi Rinci Tiap Kriteria C1–C7 &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Kriteria & Bobot AHP Interaktif */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
