@@ -15,8 +15,10 @@ import {
   BookOpen,
   X,
   SlidersHorizontal,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
+import { exportSpkToExcel } from '../utils/exportExcel';
 
 const RUBRIC_DATA = [
   {
@@ -214,6 +216,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
     });
   };
 
+  const handleExportExcel = () => {
+    if (!result || result.rankings.length === 0) return;
+    exportSpkToExcel({
+      result,
+      criteria,
+      balitas,
+      ahpData: ahpMatrixData,
+      method,
+    });
+  };
+
   const activeCriteriaCount = criteria.filter((c) => c.active !== false).length;
   const isPartialDataActive = activeCriteriaCount < 7 || dataSource === 'dataset';
 
@@ -272,6 +285,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
           >
             <BookOpen className="w-4 h-4 text-blue-700" />
             <span>Panduan Rubrik Skala 1–5</span>
+          </button>
+
+          <button
+            onClick={handleExportExcel}
+            disabled={!result || result.rankings.length === 0}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+            title="Download laporan lengkap multi-sheet (Hasil Triase, SAW/MOORA, AHP, Rubrik)"
+          >
+            <Download className="w-4 h-4 text-emerald-700" />
+            <span>Export Excel (.xlsx)</span>
           </button>
 
           <button
@@ -692,13 +715,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
                 Balita pada peringkat 1 memiliki tingkat kegawatan tertinggi dan paling mendesak memperoleh intervensi medis/gizi.
               </p>
             </div>
-            <div className="flex items-center gap-2 self-start">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <span className="text-xs font-mono font-semibold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-700">
                 Metode: {result.method.toUpperCase()}
               </span>
               <span className="text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1.5 rounded-lg">
                 Total: {result.rankings.length} Balita
               </span>
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                title="Download laporan lengkap multi-sheet (Hasil Triase, SAW/MOORA, AHP, Rubrik)"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Excel (.xlsx)</span>
+              </button>
             </div>
           </div>
 
