@@ -55,9 +55,9 @@ services:
       - DB_DATABASE=spk_stunting
       - DB_USERNAME=spk_user
       - DB_PASSWORD=spk_password
-      - REDIS_CLIENT=phpredis
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    command: sh -c "php artisan migrate --force --seed && php artisan serve --host=0.0.0.0 --port=8000"
     depends_on:
       mysql:
         condition: service_healthy
