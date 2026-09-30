@@ -1,0 +1,8 @@
+vendor/
+node_modules/
+.env
+.git
+.github
+*.log
+storage/logs/*.log
+tests/

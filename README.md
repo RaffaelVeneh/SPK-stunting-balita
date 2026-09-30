@@ -1,114 +1,103 @@
-# SPK Prioritas Intervensi Gizi Balita (Stunting)
+# SPK Prioritas Intervensi Gizi Balita (Stunting) — UNY Edition
 
-Sistem Pendukung Keputusan (SPK) untuk menentukan balita mana yang paling mendesak/urgent menerima intervensi gizi menggunakan metode Multi-Criteria Decision Making (MCDM).
+Sistem Pendukung Keputusan (SPK) Triase Intervensi Gizi Balita Berbasis Multi-Criteria Decision Making (**SAW & MOORA**) dengan Autentikasi Khusus Civitas Akademika **Universitas Negeri Yogyakarta**.
 
 ---
 
-## 📌 Fitur & Metodologi Utama
+## 🎓 Kebijakan Autentikasi Domain UNY
 
-Sistem ini menggunakan skala ordinal 1–5 untuk 7 kriteria biologis, perilaku, lingkungan, dan sosial-ekonomi balita:
-- **C1**: Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB, tren 2 bulan)
-- **C2**: Riwayat Kelahiran Berisiko (BBLR, prematur, komplikasi)
-- **C3**: Riwayat Penyakit / Infeksi (Diare, ISPA berulang)
-- **C4**: Kualitas Pola Pemberian Makan (ASI, MPASI, keragaman)
-- **C5**: Sanitasi & Akses Air Bersih
-- **C6**: Kerentanan Sosial-Ekonomi
-- **C7**: Akses & Pemanfaatan Layanan Kesehatan (Posyandu, kontrol)
+Akses ke dalam sistem dibatasi secara ketat hanya untuk akun resmi UNY:
+- **`@uny.ac.id`** (Dosen, Tenaga Kependidikan, Administrator)
+- **`@student.uny.ac.id`** (Mahasiswa UNY)
 
-### Metode Perhitungan Awal:
-1. **SAW (Simple Additive Weighting)**
-   - Normalisasi kriteria benefit: $r_{ij} = \frac{x_{ij}}{\max_k(x_{kj})}$
-   - Nilai preferensi: $V_i = \sum_{j=1}^n w_j \cdot r_{ij}$
-2. **MOORA (Multi-Objective Optimization on the basis of Ratio Analysis)**
-   - Normalisasi rasio vektor: $r_{ij} = \frac{x_{ij}}{\sqrt{\sum_{k=1}^m x_{kj}^2}}$
-   - Nilai optimasi: $y_i = \sum_{j \in \text{benefit}} w_j \cdot r_{ij} - \sum_{j \in \text{cost}} w_j \cdot r_{ij}$
+### Akun Superadmin:
+- **Email**: `raffaelvincent.2024@student.uny.ac.id`
+- **Password Default (Seeder)**: `password123`
+- **Role**: `superadmin`
+
+---
+
+## 📌 Metodologi SPK (Multi-Criteria Decision Making)
+
+Mendukung 7 kriteria triase balita skala ordinal 1–5 (arah benefit terhadap risiko):
+- **C1**: Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB, tren) — Bobot: 34.40%
+- **C2**: Riwayat Kelahiran Berisiko (BBLR, Prematur) — Bobot: 8.81%
+- **C3**: Riwayat Penyakit / Infeksi (Diare, ISPA) — Bobot: 22.89%
+- **C4**: Kualitas Pola Pemberian Makan (ASI, MPASI) — Bobot: 14.66%
+- **C5**: Sanitasi & Akses Air Bersih — Bobot: 5.21%
+- **C6**: Kerentanan Sosial-Ekonomi — Bobot: 8.81%
+- **C7**: Akses Layanan Kesehatan (Posyandu, kontrol) — Bobot: 5.21%
+
+### Metode yang Diterapkan:
+1. **SAW (Simple Additive Weighting)**: Penjumlahan terbobot rating kinerja ternormalisasi skala benefit.
+2. **MOORA (Multi-Objective Optimization on the basis of Ratio Analysis)**: Normalisasi matriks rasio vektor akar kuadrat dan optimasi nilai manfaat vs biaya.
 
 ---
 
 ## 🛠️ Tech Stack & Arsitektur
 
-- **Web Gateway & UI**: Next.js (App Router) + TypeScript + Tailwind CSS
-- **Database & ORM**: MySQL 8.4 + Prisma ORM
-- **Calculation Engine**: Python FastAPI + NumPy & Pandas
-- **Cache & Message Broker**: Redis 7-alpine + BullMQ
-- **Containerization**: Docker & Docker Compose
+```text
+app/
+├── backend/                    # Laravel 11 API Backend
+│   ├── app/Http/Controllers/   # AuthController (UNY Domain Validation) & SpkController
+│   ├── app/Rules/              # UnyEmailRule (@uny.ac.id | @student.uny.ac.id)
+│   ├── app/Services/SPK/       # SawService, MooraService, SpkEngine
+│   └── database/migrations/    # 8 tabel (users, wilayah, balita, pengukuran, dll)
+│
+├── frontend/                   # React SPA Murni (Vite + Tailwind CSS + Lucide Icons)
+│   ├── src/pages/              # LoginPage (UNY Brand) & DashboardPage (Interactive SPK)
+│   └── src/services/api.ts     # Client HTTP terintegrasi
+│
+├── docker-compose.yml          # MySQL (3307), Redis (6380), Backend (8000), Frontend (3000)
+└── README.md
+```
 
 ---
 
 ## 🚀 Cara Menjalankan
 
-### Opsi 1: Menggunakan Docker Compose (Direkomendasikan)
-
-Pastikan Docker Desktop aktif di sistem Anda, lalu jalankan:
+### Opsi 1: Menggunakan Docker Compose (Full Stack)
 
 ```bash
-cd app
 docker compose up --build
 ```
-
-Layanan yang akan berjalan:
-- **Web UI & API Gateway**: http://localhost:3000
-- **FastAPI Calculation Engine**: http://localhost:8000
-- **MySQL Database**: `localhost:3307` (database `spk_stunting`)
-- **Redis**: `localhost:6380`
+Akses layanan:
+* **Web Application (React SPA)**: [http://localhost:3000](http://localhost:3000)
+* **Backend API (Laravel)**: [http://localhost:8000](http://localhost:8000)
+* **MySQL Database**: `localhost:3307`
+* **Redis**: `localhost:6380`
 
 ### Opsi 2: Menjalankan Secara Lokal (Development)
 
-#### 1. Menjalankan Next.js Web App
+#### 1. Backend (Laravel)
 ```bash
+cd backend
+composer install
+php artisan migrate --seed
+php artisan serve --port=8000
+```
+
+#### 2. Frontend (React SPA)
+```bash
+cd frontend
 npm install
 npm run dev
 ```
-Akses di browser: http://localhost:3000
-
-#### 2. Menjalankan Engine Python (Opsional jika ingin menjalankan kalkulasi via microservice FastAPI)
-```bash
-cd engine
-python -m venv .venv
-.\.venv\Scripts\activate      # Windows
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+Akses di browser: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🧪 Menjalankan Pengujian (Testing)
+## 🧪 Pengujian (Testing)
 
-### Test Engine Python (SAW, MOORA, & FastAPI)
+### Test Backend Laravel & Auth Domain UNY
 ```bash
-cd engine
-.\.venv\Scripts\pytest -v
+cd backend
+php artisan test
 ```
+*Memverifikasi penolakan domain luar (@gmail/@yahoo), login akun UNY, serta perhitungan SAW dan MOORA.*
 
-### Build & Typecheck Next.js
+### Test Build Frontend React SPA
 ```bash
+cd frontend
 npm run build
-```
-
----
-
-## 📂 Struktur Direktori Proyek
-
-```text
-app/
-├── docker-compose.yml          # Orkestrasi Docker (MySQL, Redis, Engine, Web)
-├── Dockerfile                  # Dockerfile untuk Next.js
-├── .env.example                # Template konfigurasi environment
-├── prisma/
-│   └── schema.prisma           # Skema database MySQL (8 tabel)
-├── src/
-│   ├── app/
-│   │   ├── api/calculate/      # REST API kalkulasi SPK
-│   │   └── page.tsx            # Dashboard interaktif simulasi SAW & MOORA
-│   └── lib/
-│       └── algorithms/         # Implementasi modular TypeScript (SAW, MOORA)
-└── engine/                     # Calculation engine (Python FastAPI)
-    ├── Dockerfile
-    ├── requirements.txt
-    ├── app/
-    │   ├── main.py             # FastAPI endpoints
-    │   ├── registry.py         # Dynamic method registry
-    │   ├── schemas.py          # Pydantic schemas
-    │   └── methods/            # Algoritma SAW & MOORA (NumPy)
-    └── tests/                  # Unit test pytest
 ```

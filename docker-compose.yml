@@ -34,45 +34,47 @@ services:
       timeout: 5s
       retries: 5
 
-  # Python Calculation Engine (FastAPI)
-  engine:
+  # Laravel API Backend
+  backend:
     build:
-      context: ./engine
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: spk-stunting-engine
+    container_name: spk-stunting-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - PYTHONUNBUFFERED=1
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Web Application & Gateway (Next.js)
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: spk-stunting-web
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=mysql://spk_user:spk_password@mysql:3306/spk_stunting
-      - REDIS_URL=redis://redis:6379
-      - ENGINE_API_URL=http://engine:8000
-      - NEXTAUTH_SECRET=super-secret-jwt-key-spk-stunting-2026
-      - NEXTAUTH_URL=http://localhost:3000
+      - APP_NAME="SPK Stunting UNY"
+      - APP_ENV=production
+      - APP_KEY=base64:3f5uQd6k7p9R8xW1vA4zM2yT7nL0bV8sC1xZ4mQ7wE0=
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=spk_stunting
+      - DB_USERNAME=spk_user
+      - DB_PASSWORD=spk_password
+      - REDIS_CLIENT=phpredis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
-      engine:
-        condition: service_started
+
+  # React SPA Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: spk-stunting-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   mysql_data:
