@@ -19,6 +19,23 @@ services:
       timeout: 5s
       retries: 5
 
+  # phpMyAdmin Web UI
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: spk-stunting-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: spk_user
+      PMA_PASSWORD: spk_password
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   # Redis Cache & Queue
   redis:
     image: redis:7-alpine
