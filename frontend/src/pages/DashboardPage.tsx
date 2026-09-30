@@ -19,6 +19,7 @@ import {
   Download
 } from 'lucide-react';
 import { exportSpkToExcel } from '../utils/exportExcel';
+import { MethodologyGuide } from '../components/MethodologyGuide';
 
 const RUBRIC_DATA = [
   {
@@ -133,6 +134,9 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) => {
+  // State Tab Utama: 'triase' vs 'panduan' (Panduan Lengkap & Rincian Ketat)
+  const [mainTab, setMainTab] = useState<'triase' | 'panduan'>('triase');
+
   // State Data Sumber: 'dataset' (data_balita.csv) vs 'manual'
   const [dataSource, setDataSource] = useState<'dataset' | 'manual'>('dataset');
   const [datasetLimit, setDatasetLimit] = useState<number>(20);
@@ -308,7 +312,64 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
         </div>
       </div>
 
-      {/* Data Source Switcher & Filter */}
+      {/* Tab Switcher Utama: Triase vs Panduan Lengkap & Rincian Ketat */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setMainTab('triase')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            mainTab === 'triase'
+              ? 'bg-blue-700 text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Triase &amp; Data Balita</span>
+          {balitas.length > 0 && (
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                mainTab === 'triase'
+                  ? 'bg-blue-800 text-white'
+                  : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {balitas.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setMainTab('panduan')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            mainTab === 'panduan'
+              ? 'bg-blue-700 text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Panduan Lengkap &amp; Rincian Ketat ({method.toUpperCase()})</span>
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+              mainTab === 'panduan'
+                ? 'bg-blue-800 text-white'
+                : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}
+          >
+            Alur, Sub-Kriteria &amp; Matriks
+          </span>
+        </button>
+      </div>
+
+      {mainTab === 'panduan' ? (
+        <MethodologyGuide
+          method={method}
+          criteria={criteria}
+          balitas={balitas}
+          result={result}
+          ahpData={ahpMatrixData}
+        />
+      ) : (
+        <>
+          {/* Data Source Switcher & Filter */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
@@ -904,6 +965,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ method, user }) =>
           *Tanda bintang menandakan nilai baseline netral (1.0) hasil penanganan data parsial tahan banting.
         </p>
       </div>
+    </>
+  )}
 
       {/* MODAL PANDUAN RUBRIK SKALA 1–5 */}
       {showRubricModal && (
