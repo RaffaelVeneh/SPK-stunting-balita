@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  nama         String
+  role         String    // "admin" | "petugas"
+  wilayahId    String?   @map("wilayah_id")
+  wilayah      Wilayah?  @relation(fields: [wilayahId], references: [id])
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  ahpMatrices  AhpPairwiseMatrix[]
+  kalkulasiBatches KalkulasiBatch[]
+
+  @@map("users")
+}
+
+model Wilayah {
+  id        String   @id @default(uuid())
+  kode      String   @unique
+  nama      String
+  tingkat   String   // desa, kecamatan, kabupaten
+  parentId  String?  @map("parent_id")
+  parent    Wilayah? @relation("WilayahHierarchy", fields: [parentId], references: [id])
+  children  Wilayah[] @relation("WilayahHierarchy")
+
+  users     User[]
+  balitas   Balita[]
+  batches   KalkulasiBatch[]
+
+  @@map("wilayah")
+}
+
+model Balita {
+  id              String       @id @default(uuid())
+  kodeBalita      String       @unique @map("kode_balita") // Masked identifier for privacy
+  namaLengkap     String       @map("nama_lengkap")
+  jenisKelamin    String       @map("jenis_kelamin") // "L" | "P"
+  tanggalLahir    DateTime     @map("tanggal_lahir")
+  wilayahId       String       @map("wilayah_id")
+  wilayah         Wilayah      @relation(fields: [wilayahId], references: [id])
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  pengukurans     Pengukuran[]
+  hasilKalkulasi  HasilKalkulasi[]
+
+  @@map("balita")
+}
+
+model Pengukuran {
+  id            String   @id @default(uuid())
+  balitaId      String   @map("balita_id")
+  balita        Balita   @relation(fields: [balitaId], references: [id], onDelete: Cascade)
+  periodeBulan  Int      @map("periode_bulan")
+  periodeTahun  Int      @map("periode_tahun")
+  
+  // Antropometri mentah & z-score (dihitung saat input)
+  beratBadan    Float    @map("berat_badan") // kg
+  tinggiBadan   Float    @map("tinggi_badan") // cm
+  zscoreTbU     Float?   @map("zscore_tb_u")
+  zscoreBbU     Float?   @map("zscore_bb_u")
+  zscoreBbTb    Float?   @map("zscore_bb_tb")
+
+  // 7 Skor Kriteria Ordinal (1-5)
+  skorC1        Int      @map("skor_c1") // Kondisi Gizi & Pertumbuhan
+  skorC2        Int      @map("skor_c2") // Riwayat Kelahiran
+  skorC3        Int      @map("skor_c3") // Riwayat Penyakit/Infeksi
+  skorC4        Int      @map("skor_c4") // Pola Pemberian Makan
+  skorC5        Int      @map("skor_c5") // Sanitasi
+  skorC6        Int      @map("skor_c6") // Sosial Ekonomi
+  skorC7        Int      @map("skor_c7") // Akses Layanan Kesehatan
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([balitaId, periodeBulan, periodeTahun])
+  @@map("pengukuran")
+}
+
+model BobotKriteriaVersi {
+  id           String   @id @default(uuid())
+  versi        String   // Misal: "v1.0-2026"
+  metodeBobot  String   @map("metode_bobot") // varchar: "ahp", "manual", "critic", dll.
+  isActive     Boolean  @default(false) @map("is_active")
+  deskripsi    String?
+  weightsJson  Json     @map("weights_json") // Menyimpan bobot C1-C7
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  ahpMatrixId  String?  @unique @map("ahp_matrix_id")
+  ahpMatrix    AhpPairwiseMatrix? @relation(fields: [ahpMatrixId], references: [id])
+  kalkulasiBatches KalkulasiBatch[]
+
+  @@map("bobot_kriteria_versi")
+}
+
+model AhpPairwiseMatrix {
+  id                String    @id @default(uuid())
+  matrixJson        Json      @map("matrix_json")
+  consistencyRatio  Float     @map("consistency_ratio")
+  isValid           Boolean   @map("is_valid") // Wajib true (CR < 0.1) sebelum dipakai
+  pengisiId         String    @map("pengisi_id")
+  pengisi           User      @relation(fields: [pengisiId], references: [id])
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  bobotVersi        BobotKriteriaVersi?
+
+  @@map("ahp_pairwise_matrix")
+}
+
+model KalkulasiBatch {
+  id              String              @id @default(uuid())
+  periodeBulan    Int                 @map("periode_bulan")
+  periodeTahun    Int                 @map("periode_tahun")
+  wilayahId       String              @map("wilayah_id")
+  wilayah         Wilayah             @relation(fields: [wilayahId], references: [id])
+  bobotVersiId    String              @map("bobot_versi_id")
+  bobotVersi      BobotKriteriaVersi  @relation(fields: [bobotVersiId], references: [id])
+  status          String              // "queued", "processing", "completed", "failed"
+  createdById     String              @map("created_by_id")
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  createdAt       DateTime            @default(now()) @map("created_at")
+  completedAt     DateTime?           @map("completed_at")
+
+  hasilKalkulasi  HasilKalkulasi[]
+
+  @@map("kalkulasi_batch")
+}
+
+model HasilKalkulasi {
+  id              String         @id @default(uuid())
+  batchId         String         @map("batch_id")
+  batch           KalkulasiBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  balitaId        String         @map("balita_id")
+  balita          Balita         @relation(fields: [balitaId], references: [id], onDelete: Cascade)
+  metodeSkoring   String         @map("metode_skoring") // varchar: "saw", "moora", "topsis"
+  skor            Float
+  rank            Int
+  priorityLevel   String         @map("priority_level") // "Sangat Tinggi", "Tinggi", "Sedang", "Rendah"
+  isOverridden    Boolean        @default(false) @map("is_overridden")
+  overrideReason  String?        @map("override_reason")
+  detailsJson     Json?          @map("details_json")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@unique([batchId, balitaId, metodeSkoring])
+  @@map("hasil_kalkulasi")
+}

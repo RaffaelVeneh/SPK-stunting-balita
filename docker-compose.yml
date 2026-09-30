@@ -1,0 +1,79 @@
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.4
+    container_name: spk-stunting-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: spk_stunting
+      MYSQL_USER: spk_user
+      MYSQL_PASSWORD: spk_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: spk-stunting-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Python Calculation Engine (FastAPI)
+  engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    container_name: spk-stunting-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Web Application & Gateway (Next.js)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spk-stunting-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=mysql://spk_user:spk_password@mysql:3306/spk_stunting
+      - REDIS_URL=redis://redis:6379
+      - ENGINE_API_URL=http://engine:8000
+      - NEXTAUTH_SECRET=super-secret-jwt-key-spk-stunting-2026
+      - NEXTAUTH_URL=http://localhost:3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      engine:
+        condition: service_started
+
+volumes:
+  mysql_data:
+  redis_data:
