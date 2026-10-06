@@ -13,6 +13,7 @@ import { exportSpkToExcel } from '../utils/exportExcel';
 import { MethodologyGuide } from '../components/MethodologyGuide';
 import { ProofPanel } from '../components/ProofPanel';
 import { KriteriaDetail } from '../components/KriteriaDetail';
+import { FormBalita } from '../components/FormBalita';
 import {
   GoresanKelengkapan,
   PenandaTingkat,
@@ -85,6 +86,35 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   const [loading, setLoading] = useState(true);
   const [rincian, setRincian] = useState<RankingItem | null>(null);
   const [kriteriaTerbuka, setKriteriaTerbuka] = useState<string | null>(null);
+
+  // --- CRUD data balita ---
+  const [form, setForm] = useState<{ mode: 'tambah' | 'edit'; data?: Alternative } | null>(null);
+  // Status aktif per kode, diambil dari basis data. Balita nonaktif keluar dari
+  // perhitungan sehingga tidak muncul di peringkat, tetapi tetap harus tampil di
+  // daftar dengan tampilan redup supaya bisa diaktifkan kembali.
+  const [statusAktif, setStatusAktif] = useState<Record<string, boolean>>({});
+
+  // Galat aksi ditampilkan di halaman, bukan lewat window.alert. Alert
+  // memblokir seluruh halaman sampai ditekan, sehingga satu permintaan gagal
+  // bisa membuat antarmuka tampak macet.
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+
+  const muatStatus = useCallback(async () => {
+    try {
+      const r = await api.daftarBalita();
+      const peta: Record<string, boolean> = {};
+      r.data.forEach((b) => {
+        peta[b.id] = b.aktif !== false;
+      });
+      setStatusAktif(peta);
+    } catch {
+      // Daftar tetap tampil walau status gagal dimuat.
+    }
+  }, []);
+
+  useEffect(() => {
+    void muatStatus();
+  }, [muatStatus]);
 
   /* --- muat metadata sekali --- */
   useEffect(() => {
@@ -211,6 +241,10 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     );
   }, []);
 
+  // --- Pagination: maksimal 100 baris per halaman ---
+  const PER_HALAMAN = 100;
+  const [halaman, setHalaman] = useState(1);
+
   const barisTampil = useMemo(() => {
     const URUT_TINGKAT: Record<string, number> = {
       'Sangat Tinggi': 0,
@@ -243,6 +277,19 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
       return ((va as number) - (vb as number)) * tanda;
     });
   }, [baris, urut, balitas]);
+  // Nonaktif tidak ada di peringkat, jadi ditambahkan setelah baris terurut.
+  const barisNonaktif = useMemo(
+    () => balitas.filter((b) => statusAktif[b.id] === false),
+    [balitas, statusAktif],
+  );
+
+  const totalHalaman = Math.max(1, Math.ceil(barisTampil.length / PER_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const barisHalaman = barisTampil.slice(
+    (halamanAman - 1) * PER_HALAMAN,
+    halamanAman * PER_HALAMAN,
+  );
+
   if (seksi === 'bukti') {
     return (
       <div className="masuk">
@@ -357,6 +404,26 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
           ))}
         </div>
 
+        {galatAksi && (
+          <p className="flex items-center gap-2 border border-pigmen-merah/40 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">
+            {galatAksi}
+            <button
+              type="button"
+              onClick={() => setGalatAksi(null)}
+              className="ml-2 underline"
+            >
+              tutup
+            </button>
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => setForm({ mode: 'tambah' })}
+          className="rounded bg-papan-700 px-3 py-1.5 text-xs font-bold text-kapur-50 transition-colors hover:bg-papan-600"
+        >
+          Tambah balita
+        </button>
+
         <p className="ml-auto text-xs text-tinta-500">
           <span className="tnum font-bold text-tinta-900">{Math.round(nBaris)}</span> dari{' '}
           <span className="tnum">{Math.round(nTotal)}</span> balita
@@ -415,14 +482,14 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
               </tr>
             </thead>
             <tbody>
-              {barisTampil.map((r, i) => {
+              {barisHalaman.map((r, i) => {
 
                 const b = balitas.find((x) => x.id === r.id);
                 const t = TINGKAT[r.priority_level];
                 return (
                   <tr
                     key={r.id}
-                    className={`border-b border-rambut align-middle last:border-0${i < 16 ? ' baris-masuk' : ''}`}
+                    className={`border-b border-rambut align-middle last:border-0${i < 16 ? ' baris-masuk' : ''}${statusAktif[r.id] === false ? ' opacity-45' : ''}`}
                     style={i < 16 ? ({ '--tunda': `${i * 26}ms` } as React.CSSProperties) : undefined}
                   >
                     <td className="tnum px-3 py-2 text-right font-display text-base font-bold text-tinta-900">
@@ -490,6 +557,27 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                       >
                         Rincian
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ mode: 'edit', data: balitas.find((x) => x.id === r.id) ?? undefined })}
+                        className="ml-1.5 whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await api.ubahStatusAktif(r.id);
+                            await muatStatus();
+                          } catch (e) {
+                            setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
+                          }
+                        }}
+                        className="ml-1.5 whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-50"
+                      >
+                        Nonaktifkan
+                      </button>
                     </td>
                   </tr>
                 );
@@ -500,6 +588,25 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
       )}
 
       {/* ---------------------------------------------------------------- */}
+      {/* FORM TAMBAH / EDIT DATA BALITA */}
+      {form && (
+        <FormBalita
+          mode={form.mode}
+          awal={form.data ?? null}
+          criteria={criteria}
+          onTutup={() => setForm(null)}
+          onSimpan={async (nilai) => {
+            if (form.mode === 'tambah') {
+              await api.tambahBalita(nilai as unknown as Record<string, unknown>);
+            } else {
+              await api.ubahBalita(form.data!.id, nilai as unknown as Record<string, unknown>);
+            }
+            setForm(null);
+            await muatStatus();
+            await hitung();
+          }}
+        />
+      )}
       {/* DETAIL KRITERIA — dibuka dari pita bobot. */}
       {kriteriaTerbuka &&
         (() => {
@@ -514,6 +621,81 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
             />
           );
         })()}
+      {/* PAGINATION — maksimal 100 baris per halaman. */}
+      {totalHalaman > 1 && (
+        <div className="flex items-center gap-3 px-1 py-3">
+          <p className="text-xs text-tinta-500">
+            Halaman <span className="tnum font-bold text-tinta-900">{halamanAman}</span> dari{' '}
+            <span className="tnum">{totalHalaman}</span> ·{' '}
+            <span className="tnum">{barisTampil.length}</span> balita
+          </p>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setHalaman((h) => Math.max(1, h - 1))}
+              disabled={halamanAman <= 1}
+              className="rounded border border-rambut px-2.5 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200 disabled:text-tinta-400"
+            >
+              Sebelumnya
+            </button>
+            <button
+              type="button"
+              onClick={() => setHalaman((h) => Math.min(totalHalaman, h + 1))}
+              disabled={halamanAman >= totalHalaman}
+              className="rounded border border-rambut px-2.5 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200 disabled:text-tinta-400"
+            >
+              Berikutnya
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BALITA NONAKTIF — tetap tampil, diredupkan, bisa diaktifkan kembali. */}
+      {barisNonaktif.length > 0 && (
+        <section className="mt-6 border-t border-rambut pt-4">
+          <h3 className="text-[13px] font-bold text-tinta-900">
+            Balita nonaktif ({barisNonaktif.length})
+          </h3>
+          <p className="mt-0.5 max-w-[70ch] text-xs leading-relaxed text-tinta-500">
+            Tidak ikut perhitungan dan tidak muncul di peringkat, tetapi datanya tetap
+            tersimpan. Aktifkan kembali kalau ternyata masih terpakai.
+          </p>
+          <ul className="mt-3 divide-y divide-rambut border-y border-rambut">
+            {barisNonaktif.map((b) => (
+              <li key={b.id} className="flex items-center gap-3 py-2 opacity-45">
+                <span className="tnum w-24 shrink-0 font-display text-sm font-bold text-tinta-900">
+                  {b.id}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs text-tinta-700">{b.name}</span>
+                <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-tinta-400">
+                  Nonaktif
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await api.ubahStatusAktif(b.id);
+                      await muatStatus();
+                    } catch (e) {
+                      setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
+                    }
+                  }}
+                  className="shrink-0 rounded border border-rambut px-2 py-1 text-xs font-bold text-papan-700 transition-colors hover:bg-kertas-200"
+                >
+                  Aktifkan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ mode: 'edit', data: b })}
+                  className="shrink-0 rounded border border-rambut px-2 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200"
+                >
+                  Edit
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {/* RINCIAN PER BALITA                                                */}
       {/* ------------------------------------------------------------------ */}
       {/* Panel rincian dirender lewat portal ke <body>. Alasannya bukan gaya:

@@ -204,6 +204,80 @@ export const api = {
 
     throw new Error(`Perhitungan tidak dapat dimuat dari server (${API_BASE_URL}).`);
   },
+
+  /* ======================================================================
+     CRUD DATA BALITA
+     Tidak ada penghapusan permanen. Data yang salah atau sudah tidak
+     terpakai dinonaktifkan: keluar dari perhitungan, tetap tampil di daftar.
+     ====================================================================== */
+
+  /** Header permintaan. `isi` menambahkan token untuk permintaan tulis. */
+  headers(isi = false): Record<string, string> {
+    const h: Record<string, string> = { Accept: 'application/json' };
+    const token = this.getToken();
+    if (isi && token) {
+      h.Authorization = `Bearer ${token}`;
+      h['Content-Type'] = 'application/json';
+    }
+    return h;
+  },
+  async daftarBalita(): Promise<{
+    data: Alternative[];
+    total: number;
+    jumlah_aktif: number;
+    jumlah_nonaktif: number;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/spk/balita`, { headers: this.headers() });
+    if (!res.ok) {
+      throw new Error('Daftar balita tidak dapat dimuat dari server.');
+    }
+    return res.json();
+  },
+
+  async tambahBalita(payload: Record<string, unknown>): Promise<Alternative> {
+    const res = await fetch(`${API_BASE_URL}/spk/balita`, {
+      method: 'POST',
+      headers: this.headers(true),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      // Pesan validasi dari Laravel dirapikan supaya bisa ditampilkan apa adanya.
+      const pesan = json?.errors
+        ? Object.values(json.errors as Record<string, string[]>).flat().join(' ')
+        : json?.message || 'Data gagal disimpan.';
+      throw new Error(pesan);
+    }
+    return json.data;
+  },
+
+  async ubahBalita(kode: string, payload: Record<string, unknown>): Promise<Alternative> {
+    const res = await fetch(`${API_BASE_URL}/spk/balita/${encodeURIComponent(kode)}`, {
+      method: 'PUT',
+      headers: this.headers(true),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      const pesan = json?.errors
+        ? Object.values(json.errors as Record<string, string[]>).flat().join(' ')
+        : json?.message || 'Perubahan gagal disimpan.';
+      throw new Error(pesan);
+    }
+    return json.data;
+  },
+
+  async ubahStatusAktif(kode: string): Promise<{ message: string; data: Alternative }> {
+    const res = await fetch(`${API_BASE_URL}/spk/balita/${encodeURIComponent(kode)}/aktif`, {
+      method: 'POST',
+      headers: this.headers(true),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.message || 'Status gagal diubah.');
+    }
+    return json;
+  },
 };
 
 /**

@@ -39,6 +39,9 @@ export interface Alternative {
     tren_memburuk?: string | null;
     kelengkapan?: string | null;
   };
+  /** Nonaktif berarti keluar dari perhitungan tetapi tetap tampil di daftar. */
+  aktif?: boolean;
+  sumber?: string;
 }
 
 export interface RankingItem {
