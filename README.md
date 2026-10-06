@@ -115,12 +115,12 @@ Data Mentah Lapangan
              ▼
 ┌───────────────────────────────────────────┐
 │  TAHAP 2: PEMBOBOTAN FUZZY AHP            │
-│  Struktur tier dari Perpres 72/2021       │
-│  Pasal 1 + bukti literatur                │
-│       ↓ aturan deterministik              │
-│  Matriks Saaty 7×7 (21 perbandingan)      │
+│  MASUKAN: matriks perbandingan            │
+│  berpasangan 7×7 — penilaian pakar gizi   │
+│  pada skala Saaty 1–9, ditulis tetap      │
 │       ↓ Buckley 1985 (TFN + defuzzifikasi)│
-│  → Bobot w₁ … w₇   ·   CR = 0.0396 ✓      │
+│  → Bobot w₁ … w₇   ·   CR = 0,0079 ✓      │
+│  (urutan tingkat = KELUARAN, bukan sebab) │
 └────────────┬──────────────────────────────┘
              │
              ▼
@@ -146,27 +146,37 @@ Data Mentah Lapangan
 
 ### Bobot Fuzzy AHP (7 Kriteria)
 
-Bobot tidak lagi diketik manual. Semuanya **diturunkan** dari `KriteriaDefinition`
-(struktur tier) lewat `FuzzyAhpService`, sehingga matriks dan bobot mustahil tidak sinkron.
+**Dua lapis yang tidak boleh tertukar.** Matriks perbandingan berpasangan 7×7 adalah
+**masukan** — penilaian pakar gizi pada skala Saaty 1–9, ditulis tetap sebagai data di
+`KriteriaDefinition::MATRIKS`. Kolom **Tier** di bawah adalah **keluaran** — urutan yang
+keluar dari perhitungan bobot, bukan penyebabnya. Karena itu pertanyaan "mengapa C2 di
+tier 4?" dijawab dengan bobotnya: 8,708%, setara C6.
+
+Perhitungannya memakai **Fuzzy AHP (Buckley 1985)**: TFN `(v−1, v, v+1)` dijepit ke [1,9]
+dengan resiprokal dibalik menjadi `(1/u, 1/m, 1/l)`, rata-rata geometrik tiap baris, lalu
+defuzzifikasi graded mean `w = (l + 4m + u)/6` dan normalisasi.
 
 | Kode | Kriteria | Tier | Jalur | Bobot | Dasar utama |
 |---|---|---|---|---|---|
-| **C1** | Kondisi Gizi & Pertumbuhan (TB/U) | 1 | Langsung | **29,96%** | Prevalensi stunting Indonesia pooled 30,9%; sinyal triase paling langsung (Victora 2010) |
-| **C2** | Riwayat Kelahiran (BBLR, Prematur) | 1 | Langsung | **29,96%** | Danaei 2016: FGR/prematur klaster terdepan, 10,8 juta kasus; LBW pooled OR 2,92 |
-| **C3** | Riwayat Penyakit / Infeksi | 2 | Langsung | 13,90% | Perpres 72/2021 Pasal 1; Danaei: diare 5,8 juta kasus; Checkley 2008 OR 1,13/episode |
-| **C4** | Pola Pemberian Makan (ASI, MPASI) | 2 | Langsung | 13,90% | RCT SHINE: lengan IYCF menurunkan stunting 35%→27% |
-| **C5** | Sanitasi & Air Bersih | 3 | Tidak langsung | 6,70% | Danaei: sanitasi tidak layak 7,2 juta kasus; Torlesse 2016 aOR 3,47 |
-| **C6** | Kerentanan Sosial-Ekonomi | 4 | Tidak langsung | 3,55% | Kerawanan pangan POR 2,00; namun bantuan tunai hanya −1,35% |
-| **C7** | Akses Layanan Kesehatan | 5 | Tidak langsung | 2,04% | Bukti TERLEMAH — tidak ada meta-analisis untuk kehadiran Posyandu |
+| **C1** | Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB) | 1 | Langsung | **35,068%** | Prevalensi stunting Indonesia pooled 30,9%; sinyal triase paling langsung (Victora 2010, Roth 2017) |
+| **C2** | Riwayat Kelahiran (BBLR, Prematur) | 4 | Langsung | 8,708% | Danaei 2016: FGR/prematur klaster terdepan, 10,8 juta kasus; BBLR pooled OR 2,92 |
+| **C3** | Riwayat Penyakit / Infeksi | 2 | Langsung | 22,755% | Perpres 72/2021 Pasal 1; Checkley 2008 OR 1,13 per 5 episode diare |
+| **C4** | Pola Pemberian Makan (ASI, MPASI) | 3 | Langsung | 14,609% | RCT SHINE: lengan IYCF menurunkan stunting 35%→27% |
+| **C5** | Sanitasi & Air Bersih | 5 | Tidak langsung | 5,076% | Torlesse 2016 aOR 3,47; namun lengan WASH pada WASH-Benefits & SHINE null |
+| **C6** | Kerentanan Sosial-Ekonomi | 4 | Tidak langsung | 8,708% | Kerawanan pangan POR 2,00; namun bantuan tunai hanya −1,35% |
+| **C7** | Akses Layanan Kesehatan | 5 | Tidak langsung | 5,076% | Bukti TERLEMAH — tidak ada meta-analisis untuk kehadiran Posyandu |
 
-**Uji Konsistensi AHP:** λmax = 7,3134, CI = 0,0522, RI = 1,32, **CR = 0,0396 < 0,10 ✓**
+**Uji konsistensi:** λmax = 7,062469, CI = 0,010411, RI = 1,32, **CR = 0,007887 < 0,10 ✓**
 
-> ⚠️ **Catatan penting soal CR**: karena matriks diturunkan dari satu nilai tier per
-> kriteria, matriksnya transitif **secara konstruksi**. Nilai CR di atas karena itu hanya
-> mencerminkan galat pembulatan ke bilangan Saaty, **bukan** kualitas pertimbangan, dan
-> **tidak boleh** diklaim sebagai validasi keahlian pakar. Validasi yang bermakna ada pada
-> uji sensitivitas (lihat `analisis/hasil_ahp.txt` Bagian 6): dari 12 skenario pergeseran
-> tier, ketiga invarian struktural tetap bertahan.
+> **Catatan soal CR.** Matriks ini adalah penilaian pakar yang berdiri sendiri, **bukan**
+> turunan dari satu skor per kriteria. Karena itu CR di sini benar-benar menguji kekoherenan
+> pertimbangan antar-kriteria, bukan sekadar galat pembulatan — dan 0,0079 berarti
+> perbandingan pakar saling konsisten.
+>
+> Bobot fuzzy ini juga berdekatan dengan hasil tegas (crisp) pada matriks yang sama:
+> C1 35,616% tegas vs 35,068% fuzzy, dengan selisih maksimum 0,5 poin persentase. Artinya
+> kesimpulan bobotnya **stabil terhadap pemodelan ketidakpastian**. Angka bekunya ada di
+> `analisis/bobot_resmi.json`; urutan hasilnya C1 > C3 > C4 > C2 = C6 > C5 = C7.
 
 ### Tingkat Prioritas: Aturan Klinis Absolut
 
@@ -204,9 +214,12 @@ SPK Stunting Balita/
 │   │   │       └── SPK/
 │   │   │           ├── KriteriaDefinition.php  # SUMBER TUNGGAL: 7 kriteria + tier + matriks
 │   │   │           ├── FuzzyAhpService.php     # Fuzzy AHP (Buckley 1985) + uji CR
-│   │   │           ├── AhpService.php          # AHP crisp (matriks yang diisi pengguna)
+│   │   │           ├── AhpService.php          # AHP crisp (metode tegas + uji konsistensi)
 │   │   │           ├── MooraService.php        # Normalisasi Euclidean + triase klinis absolut
 │   │   │           └── SpkEngine.php           # Router (MOORA saja)
+│   │   ├── storage/dataset/               # Dataset DI DALAM repo, agar hasil clone mandiri
+│   │   │   ├── dummy_balita_7kriteria.csv # 120 balita, 7 kriteria lengkap (DIPAKAI)
+│   │   │   └── data_balita.csv            # 121.001 baris, 4 kolom (cadangan lama)
 │   │   ├── database/migrations/           # Tabel users, spk_sessions, wilayah, dst.
 │   │   ├── routes/api.php                 # Semua endpoint REST API
 │   │   └── Dockerfile                     # PHP 8.2 + Composer + Artisan serve
@@ -214,24 +227,30 @@ SPK Stunting Balita/
 │   ├── frontend/                   # React 19 SPA
 │   │   ├── src/
 │   │   │   ├── pages/
-│   │   │   │   └── DashboardPage.tsx      # Halaman utama (triase + panduan)
+│   │   │   │   ├── DashboardPage.tsx      # Tiga seksi: Triase, Bukti Perhitungan, Panduan
+│   │   │   │   └── LoginPage.tsx          # Halaman masuk + pita bobot dari API
 │   │   │   ├── components/
-│   │   │   │   ├── Navbar.tsx             # Top navigation bar
-│   │   │   │   └── MethodologyGuide.tsx   # Panduan Lengkap (5 sub-tab)
+│   │   │   │   ├── papan.tsx              # PitaBobot, Tally, PenandaTingkat, RampCell
+│   │   │   │   ├── ProofPanel.tsx         # Bukti perhitungan AHP: matriks, audit, CR, TFN
+│   │   │   │   ├── Diagram.tsx            # Enam diagram alir (SVG bentuk baku flowchart)
+│   │   │   │   └── MethodologyGuide.tsx   # Panduan metodologi (4 sub-tab)
+│   │   │   ├── hooks/
+│   │   │   │   └── useHitungNaik.ts       # Angka ringkasan yang bergulir naik
 │   │   │   ├── services/
-│   │   │   │   └── api.ts                 # Axios-like fetch wrapper ke backend
+│   │   │   │   └── api.ts                 # Pembungkus fetch ke backend
 │   │   │   ├── utils/
-│   │   │   │   └── exportExcel.ts         # Multi-sheet XLSX export (4 sheet)
-│   │   │   └── types/
-│   │   │       └── index.ts               # TypeScript types (Alternative, Criterion, dll.)
+│   │   │   │   └── exportExcel.ts         # Ekspor XLSX multi-sheet + jejak audit
+│   │   │   ├── types/
+│   │   │   │   └── index.ts               # Tipe TypeScript
+│   │   │   └── index.css                  # Sistem desain: token, animasi, bilah gulir
+│   │   ├── public/fonts/                  # Archivo & Archivo Narrow (di-host sendiri)
 │   │   ├── nginx.conf                     # Nginx SPA routing (try_files)
 │   │   └── Dockerfile                     # Node 20 build → Nginx Alpine serve
 │   │
 │   └── docker-compose.yml          # Orkestrasi 5 container
 │
-├── dataset/
-│   ├── dummy_balita_7kriteria.csv  # 120 balita dummy, 7 kriteria lengkap (DIPAKAI)
-│   └── data_balita.csv             # 121.001 baris — hanya 4 kolom (cadangan)
+├── dataset/                        # Root proyek — DI LUAR repo ini
+│   └── dummy_balita_7kriteria.csv  # Sumber generator (seed tetap 20260730)
 │
 ├── analisis/                       # Pembuktian bobot AHP (auditable & reproducible)
 │   ├── kriteria.py                 # Sumber tunggal tier kriteria
@@ -243,7 +262,7 @@ SPK Stunting Balita/
 │   ├── verify_php_ahp.php          # Verifikasi silang PHP vs Python (bobot)
 │   ├── verify_php_moora.php        # Verifikasi silang PHP vs Python (MOORA/triase)
 │   ├── hasil_ahp.txt               # LAPORAN PEMBUKTIAN lengkap
-│   └── bobot_final.json            # Bobot final yang dipakai sistem
+│   └── bobot_resmi.json            # Angka resmi bobot (matriks, fuzzy, TFN, CR)
 │
 ├── modul/
 │   └── SPK[TIK]-3-AHP.pdf         # Modul AHP UNY (Tika Novita Sari, M.Cs.)
@@ -339,7 +358,7 @@ Sistem memakai **dataset dummy sintetis** sebagai sumber utama, murni dibangkitk
 
 | Atribut | Dataset utama | Dataset cadangan |
 |---|---|---|
-| **File** | `dataset/dummy_balita_7kriteria.csv` | `dataset/data_balita.csv` |
+| **File** | `backend/storage/dataset/dummy_balita_7kriteria.csv` | `backend/storage/dataset/data_balita.csv` |
 | **Jumlah** | 120 balita | 121.001 baris |
 | **Kolom** | 16 (identitas, antropometri, HAZ, status gizi, tren, **c1–c7**, kelengkapan) | 4 |
 | **Kriteria tersedia** | **Ketujuh (C1–C7), semua bervariasi penuh 1–5** | Hanya C1 (C2 & C4 dikarang heuristik) |
@@ -359,18 +378,33 @@ Dataset dummy dibangkitkan oleh `analisis/generate_dataset_dummy.py` dengan seed
 
 ## ✨ Fitur Aplikasi
 
-### Tab Triase & Data Balita
-- [x] Input manual kohort balita
-- [x] Metode skoring **difiksasi ke MOORA** (SAW dihapus)
-- [x] Toggle aktif/nonaktif kriteria C1–C7 secara real-time
-- [x] Redistribusi bobot proporsional saat kriteria dinonaktifkan
+### Seksi Triase Prioritas
+- [x] **Bobot terkunci** pada hasil AHP — tidak ada toggle kriteria, tidak ada redistribusi
+      bobot, dan bobot kiriman klien diabaikan server
+- [x] Daftar peringkat 120 balita, dengan **goresan tally** sebagai skor 1–5 tiap kriteria
+- [x] Pita tujuh bobot yang lebarnya sebanding dengan bobot AHP-nya
+- [x] Penyaring jumlah baris, status gizi, dan pencarian kode / nama
 - [x] Tingkat prioritas dari **aturan klinis absolut**, bukan ambang relatif kohort
-- [x] Data kosong **tidak** diimputasi; anak dengan data < 5/7 ditandai perlu verifikasi
-- [x] Tabel ranking dengan badge skor kriteria berwarna (merah/amber/hijau)
-- [x] Perangkingan seri: skor sama → peringkat sama
-- [x] Modal rincian klinis per balita (rapor nilai 1–5 tiap kriteria)
-- [x] Export multi-sheet Excel (Hasil Triase, Perhitungan MOORA, Fuzzy AHP, Rubrik)
-- [x] Integrasi dataset dummy 7 kriteria (120 balita)
+- [x] Data kosong **tidak** diimputasi; balita dengan data < 5/7 ditandai perlu verifikasi
+      **tanpa** menurunkan tingkatnya
+- [x] Perangkingan seri: skor sama mendapat peringkat sama
+- [x] Panel rincian per balita: nilai tujuh kriteria, dasar tingkat, dan tindakan yang disarankan
+- [x] Panel rincian mengunci gulir halaman, dapat digulir sendiri, dan ditutup dengan Escape
+- [x] Export multi-sheet Excel beserta langkah perhitungan dan jejak audit
+
+### Seksi Bukti Perhitungan
+- [x] Urutan kepentingan hasil perhitungan, lengkap dengan dasar tiap penempatan
+- [x] Matriks perbandingan berpasangan 7×7 beserta jumlah baris dan jumlah kolom
+- [x] Jejak audit 21 perbandingan unik, dibaca langsung dari matriks
+- [x] Uji konsistensi: λmax, CI, RI, dan CR
+- [x] Bobot tegas vs fuzzy beserta TFN dan lebar sebarannya
+
+### Seksi Panduan Metodologi
+- [x] Alur perhitungan tujuh tahap
+- [x] **Diagram alir**: alur pengguna, alur sistem, alur AHP, alur MOORA, pohon keputusan
+      triase klinis, dan arsitektur wadah
+- [x] Sub-kriteria fuzzy: domain dan kurva tiap kriteria
+- [x] Rumus MOORA dan aturan triase klinis
 
 ### Tab Panduan Lengkap
 - [x] **Sub-tab 1** — Alur & Tahapan SPK (tabel 7 langkah)
@@ -455,33 +489,35 @@ npx tsc --noEmit
 | TB/U Z-score (C1) | WHO Child Growth Standards (2006) |
 | Fuzzifikasi | Zadeh, L.A. (1965). *Fuzzy Sets. Information and Control* |
 
-> Daftar rujukan lengkap beserta angka yang diverifikasi ada di `EVIDENCE_BASE_AHP_CRITERIA.md`
-> dan `analisis/hasil_ahp.txt` Bagian 9.
+> Daftar rujukan lengkap beserta angka yang diverifikasi ada di
+> `../EVIDENCE_BASE_AHP_CRITERIA.md` (root proyek, di luar repo ini).
 
 ### 🔬 Reproduksibilitas Pembuktian
 
 Seluruh rantai dari bukti ke bobot dapat dijalankan ulang:
 
+> ⚠️ Folder `analisis/` berada di **root proyek**, satu tingkat di atas repo ini, dan **tidak
+> ikut ter-commit**. Skrip bertanda *(historis)* merekam penurunan yang pernah dipakai tetapi
+> **bukan lagi sumber angka** yang berlaku — status tiap berkas ada di `analisis/README.md`.
+
 ```bash
-# 1. Bangkitkan dataset dummy (seed tetap)
-python analisis/generate_dataset_dummy.py
+# 1. Bangkitkan dataset dummy (seed tetap 20260730)
+python ../analisis/generate_dataset_dummy.py
 
-# 2. Hitung bobot Fuzzy AHP + uji konsistensi + uji sensitivitas
-python analisis/fuzzy_ahp.py
+# 2. Terapkan aturan triase klinis atas dataset
+python ../analisis/triase_klinis.py
 
-# 3. Uji apakah bobot benar-benar mengubah urutan prioritas
-python analisis/uji_dampak_bobot.py
+# 3. Verifikasi silang: implementasi PHP harus IDENTIK dengan acuan Python
+php ../analisis/verify_php_ahp.php      # bobot dan CR
+php ../analisis/verify_php_moora.php    # MOORA dan triase
 
-# 4. Uji apakah aturan triase klinis konsisten dengan status gizi
-python analisis/triase_klinis.py
-
-# 5. Verifikasi silang: implementasi PHP harus IDENTIK dengan Python
-php analisis/verify_php_ahp.php
-php analisis/verify_php_moora.php
-
-# 6. Uji backend
-cd app/backend && php vendor/bin/phpunit
+# 4. Uji backend: 17 tes, 496 asersi
+cd backend && php vendor/bin/phpunit
 ```
+
+Angka resmi bobot yang berlaku ada di `../analisis/bobot_resmi.json`.
+Skrip *(historis)*: `../analisis/historis/fuzzy_ahp.py` (menurunkan matriks dari tier) dan
+`../analisis/historis/uji_dampak_bobot.py`.
 
 ---
 
