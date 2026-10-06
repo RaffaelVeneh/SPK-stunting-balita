@@ -214,7 +214,7 @@ class SpkController extends Controller
     }
 
     /**
-     * Mengambil sampel balita langsung dari dataset nyata data_balita.csv.
+     * Mengambil sampel balita dari basis data (tabel balita_spk).
      */
     public function datasetSamples(Request $request)
     {
@@ -239,7 +239,7 @@ class SpkController extends Controller
     }
 
     /**
-     * Mengambil ringkasan statistik dataset data_balita.csv (121.001 data).
+     * Mengambil ringkasan statistik data balita dari basis data..
      */
     public function datasetSummary()
     {

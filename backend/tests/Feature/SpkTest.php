@@ -2,10 +2,49 @@
 
 namespace Tests\Feature;
 
+use App\Models\BalitaSpk;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SpkTest extends TestCase
 {
+    // Basis data uji memakai SQLite di memori dan sebelumnya tidak menjalankan
+    // migrasi sama sekali. Dulu itu tidak masalah karena data balita dibaca dari
+    // berkas CSV; sejak pindah ke tabel balita_spk, migrasinya wajib dijalankan.
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Beberapa baris disemai supaya endpoint dataset punya isi untuk diuji.
+        // Nilainya lengkap tujuh kriteria, sesuai syarat masuk aplikasi.
+        // Nilai kriteria dibuat bervariasi penuh 1-5. Kalau semua sama, uji
+        // sebaran kriteria gagal karena datasetnya degenerat.
+        $status = ['normal', 'stunted', 'severely stunted', 'tinggi'];
+
+        for ($i = 1; $i <= 12; $i++) {
+            BalitaSpk::create([
+                'kode' => sprintf('BAL-%04d', $i),
+                'nama' => 'Uji ' . $i,
+                'usia_bulan' => 12 + $i * 2,
+                'jenis_kelamin' => $i % 2 === 1 ? 'Laki-Laki' : 'Perempuan',
+                'tinggi_badan_cm' => 70 + $i,
+                'haz' => -3.0 + ($i % 7) * 0.7,
+                'status_gizi' => $status[$i % 4],
+                'tren_memburuk' => $i % 3 === 0,
+                'c1' => (($i - 1) % 5) + 1,
+                'c2' => (($i + 1) % 5) + 1,
+                'c3' => (($i + 2) % 5) + 1,
+                'c4' => (($i + 3) % 5) + 1,
+                'c5' => (($i + 4) % 5) + 1,
+                'c6' => ($i % 5) + 1,
+                'c7' => (($i + 2) % 5) + 1,
+                'aktif' => true,
+                'sumber' => 'dummy',
+            ]);
+        }
+    }
     public function test_can_fetch_default_criteria(): void
     {
         $response = $this->getJson('/api/spk/criteria');
