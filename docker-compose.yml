@@ -10,7 +10,8 @@ services:
       MYSQL_USER: spk_user
       MYSQL_PASSWORD: spk_password
     ports:
-      - "3307:3306"
+      # Diikat ke 127.0.0.1 saja. Tanpa ini, MySQL terbuka ke seluruh internet.
+      - "127.0.0.1:3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -25,7 +26,7 @@ services:
     container_name: spk-stunting-phpmyadmin
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
@@ -42,7 +43,7 @@ services:
     container_name: spk-stunting-redis
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -59,7 +60,7 @@ services:
     container_name: spk-stunting-backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ../dataset:/var/www/dataset:ro
     environment:
@@ -67,7 +68,7 @@ services:
       - APP_ENV=production
       - APP_KEY=base64:3f5uQd6k7p9R8xW1vA4zM2yT7nL0bV8sC1xZ4mQ7wE0=
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8000
+      - APP_URL=${APP_URL:-http://localhost:8000}
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -88,10 +89,18 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # Nilai-nilai ini ditanamkan Vite saat build. Untuk VPS sub-direktori,
+      # isi berkas .env di folder ini dengan:
+      #   VITE_BASE_PATH=/stunting-balita/
+      #   VITE_API_URL=/stunting-balita/api
+      args:
+        VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_ALLOW_LOCAL_FALLBACK: ${VITE_ALLOW_LOCAL_FALLBACK:-false}
     container_name: spk-stunting-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - backend
 

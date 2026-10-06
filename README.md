@@ -274,6 +274,10 @@ SPK Stunting Balita/
 
 ## 🚀 Cara Menjalankan (Docker)
 
+> **Deploy ke VPS di sub-direktori** (misalnya `domainku.com/stunting-balita`):
+> ikuti [`DEPLOY.md`](DEPLOY.md). Bagian di bawah ini untuk menjalankan di
+> komputer sendiri, tempat aplikasi berada di akar domain.
+
 ### Prasyarat
 - Docker Desktop (Windows/macOS/Linux)
 - Git

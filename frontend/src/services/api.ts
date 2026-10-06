@@ -11,6 +11,18 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+/**
+ * Boleh tidaknya peramban menghitung sendiri ketika API tidak terjangkau.
+ *
+ * Di produksi ini HARUS 'false'. Alasannya bukan soal kerapian: kalau 'true',
+ * alamat API yang salah tidak akan memunculkan galat apa pun — aplikasi tetap
+ * menampilkan hasil, padahal angkanya dihitung di peramban dan bukan oleh
+ * server. Untuk sistem pendukung keputusan yang dipertanggungjawabkan, hasil
+ * yang tampak benar tetapi berasal dari jalur yang salah lebih berbahaya
+ * daripada pesan galat.
+ */
+const IZINKAN_CADANGAN = import.meta.env.VITE_ALLOW_LOCAL_FALLBACK === 'true';
+
 export const api = {
   getToken(): string | null {
     return localStorage.getItem('spk_token');
@@ -91,19 +103,23 @@ export const api = {
       // offline fallback
     }
 
-    // Cadangan offline. Angka ini HARUS sama dengan hasil Fuzzy AHP di backend;
-    // sebelumnya di sini masih tertulis bobot lama (0.3440, 0.0881, ...) yang
-    // tidak sesuai dengan matriks maupun dengan hasil perhitungan server.
-    // Sumber kebenarannya adalah analisis/bobot_final.json.
-    return [
-      { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U)', weight: 0.29961, type: 'benefit', tier: 1, jalur: 'Langsung' },
-      { code: 'C2', name: 'Riwayat Kelahiran Berisiko (BBLR/Prematur)', weight: 0.29961, type: 'benefit', tier: 1, jalur: 'Langsung' },
-      { code: 'C3', name: 'Riwayat Penyakit / Infeksi', weight: 0.138974, type: 'benefit', tier: 2, jalur: 'Langsung' },
-      { code: 'C4', name: 'Kualitas Pola Pemberian Makan (ASI/MPASI)', weight: 0.138974, type: 'benefit', tier: 2, jalur: 'Langsung' },
-      { code: 'C5', name: 'Sanitasi & Akses Air Bersih', weight: 0.066954, type: 'benefit', tier: 3, jalur: 'Tidak langsung' },
-      { code: 'C6', name: 'Kerentanan Sosial-Ekonomi', weight: 0.035488, type: 'benefit', tier: 4, jalur: 'Tidak langsung' },
-      { code: 'C7', name: 'Akses Layanan Kesehatan (Posyandu)', weight: 0.020391, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
-    ];
+    // Cadangan luring, hanya aktif bila VITE_ALLOW_LOCAL_FALLBACK = 'true'.
+    // Angka ini HARUS sama dengan hasil Fuzzy AHP server; sumber kebenarannya
+    // adalah analisis/bobot_resmi.json. Tier di bawah adalah KELUARAN dari
+    // bobot ini, bukan penyebabnya.
+    if (IZINKAN_CADANGAN) {
+      return [
+        { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U)', weight: 0.350684, type: 'benefit', tier: 1, jalur: 'Langsung' },
+        { code: 'C2', name: 'Riwayat Kelahiran Berisiko (BBLR/Prematur)', weight: 0.087080, type: 'benefit', tier: 4, jalur: 'Langsung' },
+        { code: 'C3', name: 'Riwayat Penyakit / Infeksi', weight: 0.227551, type: 'benefit', tier: 2, jalur: 'Langsung' },
+        { code: 'C4', name: 'Kualitas Pola Pemberian Makan (ASI/MPASI)', weight: 0.146093, type: 'benefit', tier: 3, jalur: 'Langsung' },
+        { code: 'C5', name: 'Sanitasi & Akses Air Bersih', weight: 0.050755, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
+        { code: 'C6', name: 'Kerentanan Sosial-Ekonomi', weight: 0.087080, type: 'benefit', tier: 4, jalur: 'Tidak langsung' },
+        { code: 'C7', name: 'Akses Layanan Kesehatan (Posyandu)', weight: 0.050755, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
+      ];
+    }
+
+    throw new Error(`Kriteria tidak dapat dimuat dari server (${API_BASE_URL}).`);
   },
 
   async getAhpMatrix(): Promise<AhpMatrixResponse | null> {
@@ -179,10 +195,14 @@ export const api = {
         return json.data;
       }
     } catch {
-      // Fallback kalkulasi lokal di client
+      // Jaringan gagal; ditangani di bawah.
     }
 
-    return localCalculate(alternatives, criteria);
+    if (IZINKAN_CADANGAN) {
+      return localCalculate(alternatives, criteria);
+    }
+
+    throw new Error(`Perhitungan tidak dapat dimuat dari server (${API_BASE_URL}).`);
   },
 };
 
