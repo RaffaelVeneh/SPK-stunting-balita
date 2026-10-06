@@ -32,3 +32,10 @@ redis_data/
 Thumbs.db
 .idea/
 .vscode/
+
+# Konfigurasi rahasia tingkat compose. JANGAN pernah di-commit.
+# Negasi di bawah wajib: tanpa itu, berkas contoh ikut terabaikan juga.
+.env
+.env.*
+!.env.example
+!.env.production.example
