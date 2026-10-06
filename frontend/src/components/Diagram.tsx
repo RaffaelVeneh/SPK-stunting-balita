@@ -23,11 +23,20 @@ export type Langkah =
 const W = 900;
 const SPINE = 330;
 const LEBAR_SIMPUL = 400;
-const TINGGI_SIMPUL = 58;
-const TINGGI_SIMPUL_DUA = 72;
 const JARAK = 34;
-const LEBAR_BELAH = 260;
-const TINGGI_BELAH = 92;
+const LEBAR_BELAH = 280;
+/**
+ * Tinggi simpul TIDAK dipatok. Sebelumnya nilainya tetap (58 untuk satu baris,
+ * 72 untuk dua baris), sehingga keterangan yang membungkus menjadi tiga baris
+ * meluber keluar kotaknya. Sekarang tinggi dihitung dari jumlah baris yang
+ * benar-benar dihasilkan oleh pembungkus teks.
+ */
+const PAD_SIMPUL = 17;
+const BARIS_JUDUL = 17;
+const BARIS_KET = 15;
+const MAKS_JUDUL = 46;
+const MAKS_KET = 58;
+const MAKS_BELAH = 26;
 const X_KELUAR = 512;
 const LEBAR_KELUAR = 352;
 
@@ -58,37 +67,32 @@ function baris(teks: string, maks: number): string[] {
   return out;
 }
 
-const Teks: React.FC<{
+/** Satu blok teks dengan baris yang sudah dihitung, digambar dari atas ke bawah. */
+const TeksBaris: React.FC<{
   x: number;
-  y: number;
-  isi: string;
-  maks: number;
-  warna?: string;
+  mulai: number;
+  lines: string[];
+  warna: string;
   tebal?: boolean;
-  saiz?: number;
-}> = ({ x, y, isi, maks, warna = WARNA.tinta, tebal = false, saiz = 12.5 }) => {
-  const l = baris(isi, maks);
-  const mulai = y - ((l.length - 1) * (saiz + 2)) / 2;
-  return (
-    <text
-      x={x}
-      y={mulai}
-      textAnchor="middle"
-      dominantBaseline="middle"
-      fill={warna}
-      fontSize={saiz}
-      fontWeight={tebal ? 700 : 400}
-      fontFamily="Archivo, system-ui, sans-serif"
-    >
-      {l.map((b, i) => (
-        <tspan key={i} x={x} dy={i === 0 ? 0 : saiz + 2}>
-          {b}
-        </tspan>
-      ))}
-    </text>
-  );
-};
-
+  saiz: number;
+  tinggiBaris: number;
+}> = ({ x, mulai, lines, warna, tebal = false, saiz, tinggiBaris }) => (
+  <text
+    x={x}
+    fill={warna}
+    fontSize={saiz}
+    fontWeight={tebal ? 700 : 400}
+    fontFamily="Archivo, system-ui, sans-serif"
+    textAnchor="middle"
+    dominantBaseline="middle"
+  >
+    {lines.map((b, i) => (
+      <tspan key={i} x={x} y={mulai + i * tinggiBaris}>
+        {b}
+      </tspan>
+    ))}
+  </text>
+);
 const Panah: React.FC<{ id: string; x1: number; y1: number; x2: number; y2: number }> = ({
   id,
   x1,
@@ -120,63 +124,85 @@ const DiagramAlir: React.FC<{
   const panah: React.ReactNode[] = [];
   const keluaran: React.ReactNode[] = [];
 
-  const gambarSimpul = (l: Extract<Langkah, { bentuk: BentukSimpul }>, atas: number): number => {
-    const duaBaris = !!l.ket;
-    const h = duaBaris ? TINGGI_SIMPUL_DUA : TINGGI_SIMPUL;
+  const gambarSimpul = (
+    l: Extract<Langkah, { bentuk: BentukSimpul }>,
+    atas: number,
+  ): number => {
+    const judulBaris = baris(l.judul, MAKS_JUDUL);
+    const ketBaris = l.ket ? baris(l.ket, MAKS_KET) : [];
+    const h = PAD_SIMPUL * 2 + judulBaris.length * BARIS_JUDUL + ketBaris.length * BARIS_KET;
+
     const x = SPINE - LEBAR_SIMPUL / 2;
-    const tengah = atas + h / 2;
     const gelap = l.bentuk === 'terminator';
+    const kunci = `n${atas}`;
 
     if (l.bentuk === 'terminator') {
       simpul.push(
-        <rect key={`r${atas}`} x={x} y={atas} width={LEBAR_SIMPUL} height={h} rx={h / 2} fill={WARNA.papan} />
+        <rect key={kunci} x={x} y={atas} width={LEBAR_SIMPUL} height={h} rx={h / 2} fill={WARNA.papan} />,
       );
     } else if (l.bentuk === 'simpan') {
       simpul.push(
-        <g key={`r${atas}`}>
+        <g key={kunci}>
           <rect x={x} y={atas} width={LEBAR_SIMPUL} height={h} rx={4} fill={WARNA.kertas} stroke={WARNA.garis} strokeWidth={1.25} />
           <line x1={x + 16} y1={atas} x2={x + 16} y2={atas + h} stroke={WARNA.garisTipis} strokeWidth={1.25} />
-        </g>
+        </g>,
       );
     } else if (l.bentuk === 'dokumen') {
-      const b = h - 10;
+      const b = h - 9;
       simpul.push(
         <path
-          key={`r${atas}`}
-          d={`M${x},${atas} H${x + LEBAR_SIMPUL} V${atas + b} q${-LEBAR_SIMPUL / 4},10 ${-LEBAR_SIMPUL / 2},0 q${-LEBAR_SIMPUL / 4},-10 ${-LEBAR_SIMPUL / 2},0 Z`}
+          key={kunci}
+          d={`M${x},${atas} H${x + LEBAR_SIMPUL} V${atas + b} q${-LEBAR_SIMPUL / 4},9 ${-LEBAR_SIMPUL / 2},0 q${-LEBAR_SIMPUL / 4},-9 ${-LEBAR_SIMPUL / 2},0 Z`}
           fill={WARNA.kertas}
           stroke={WARNA.garis}
           strokeWidth={1.25}
-        />
+        />,
       );
     } else {
       simpul.push(
-        <rect key={`r${atas}`} x={x} y={atas} width={LEBAR_SIMPUL} height={h} rx={4} fill={WARNA.kertas} stroke={WARNA.garis} strokeWidth={1.25} />
+        <rect key={kunci} x={x} y={atas} width={LEBAR_SIMPUL} height={h} rx={4} fill={WARNA.kertas} stroke={WARNA.garis} strokeWidth={1.25} />,
       );
     }
 
-    if (duaBaris) {
+    const awalJudul = atas + PAD_SIMPUL + BARIS_JUDUL / 2;
+    simpul.push(
+      <TeksBaris
+        key={`t${atas}`}
+        x={SPINE}
+        mulai={awalJudul}
+        lines={judulBaris}
+        warna={gelap ? WARNA.kapur : WARNA.tinta}
+        tebal
+        saiz={12.5}
+        tinggiBaris={BARIS_JUDUL}
+      />,
+    );
+    if (ketBaris.length) {
       simpul.push(
-        <Teks key={`t1${atas}`} x={SPINE} y={tengah - 11} isi={l.judul} maks={48} tebal warna={gelap ? WARNA.kapur : WARNA.tinta} />
-      );
-      simpul.push(
-        <Teks key={`t2${atas}`} x={SPINE} y={tengah + 12} isi={l.ket!} maks={62} warna={gelap ? '#b8b199' : WARNA.tintaMuted} saiz={11.5} />
-      );
-    } else {
-      simpul.push(
-        <Teks key={`t1${atas}`} x={SPINE} y={tengah} isi={l.judul} maks={56} tebal warna={gelap ? WARNA.kapur : WARNA.tinta} />
+        <TeksBaris
+          key={`k${atas}`}
+          x={SPINE}
+          mulai={awalJudul + judulBaris.length * BARIS_JUDUL - BARIS_JUDUL / 2 + BARIS_KET / 2}
+          lines={ketBaris}
+          warna={gelap ? '#b8b199' : WARNA.tintaMuted}
+          saiz={11.5}
+          tinggiBaris={BARIS_KET}
+        />,
       );
     }
     return h;
   };
-
   for (let i = 0; i < langkah.length; i++) {
     const l = langkah[i];
     const adaBerikut = i < langkah.length - 1;
 
     if (l.bentuk === 'keputusan') {
+      const judulBaris = baris(l.judul, MAKS_BELAH);
+      // Belah ketupat menyempit ke atas dan ke bawah, jadi tingginya harus
+      // cukup untuk menampung seluruh baris di bagian yang paling lebar.
+      const tinggiBelah = Math.max(84, judulBaris.length * BARIS_JUDUL + 54);
       const atas = y;
-      const tengah = atas + TINGGI_BELAH / 2;
+      const tengah = atas + tinggiBelah / 2;
       const kiri = SPINE - LEBAR_BELAH / 2;
       const kanan = SPINE + LEBAR_BELAH / 2;
 
@@ -185,46 +211,83 @@ const DiagramAlir: React.FC<{
       simpul.push(
         <polygon
           key={`d${i}`}
-          points={`${SPINE},${atas} ${kanan},${tengah} ${SPINE},${atas + TINGGI_BELAH} ${kiri},${tengah}`}
+          points={`${SPINE},${atas} ${kanan},${tengah} ${SPINE},${atas + tinggiBelah} ${kiri},${tengah}`}
           fill={WARNA.kertas}
           stroke={WARNA.garis}
           strokeWidth={1.25}
         />
       );
-      simpul.push(<Teks key={`dt${i}`} x={SPINE} y={tengah} isi={l.judul} maks={30} tebal saiz={11.5} />);
+      simpul.push(
+        <TeksBaris
+          key={`dt${i}`}
+          x={SPINE}
+          mulai={tengah - ((judulBaris.length - 1) * BARIS_JUDUL) / 2}
+          lines={judulBaris}
+          warna={WARNA.tinta}
+          tebal
+          saiz={11.5}
+          tinggiBaris={BARIS_JUDUL}
+        />,
+      );
 
       // Keluar ke kanan menuju tingkat hasil
       panah.push(<Panah key={`pe${i}`} id={id} x1={kanan} y1={tengah} x2={X_KELUAR} y2={tengah} />);
       simpul.push(
-        <Teks key={`ya${i}`} x={(kanan + X_KELUAR) / 2} y={tengah - 12} isi="Ya" maks={10} tebal warna={WARNA.tintaMuted} saiz={11.5} />
+        <TeksBaris key={`ya${i}`} x={(kanan + X_KELUAR) / 2} mulai={tengah - 12} lines={['Ya']} warna={WARNA.tintaMuted} tebal saiz={11.5} tinggiBaris={BARIS_KET} />
       );
+      const yaBaris = baris(l.ya, 40);
+      const yaKetBaris = l.yaKet ? baris(l.yaKet, 50) : [];
+      const tinggiKeluar =
+        PAD_SIMPUL * 2 + yaBaris.length * BARIS_JUDUL + yaKetBaris.length * BARIS_KET;
+      const atasKeluar = tengah - tinggiKeluar / 2;
       keluaran.push(
         <g key={`k${i}`}>
-          <rect x={X_KELUAR} y={tengah - 26} width={LEBAR_KELUAR} height={52} rx={4} fill={WARNA.papan} />
-          <Teks x={X_KELUAR + LEBAR_KELUAR / 2} y={l.yaKet ? tengah - 6 : tengah} isi={l.ya} maks={44} tebal warna={WARNA.kapur} />
-          {l.yaKet && (
-            <Teks x={X_KELUAR + LEBAR_KELUAR / 2} y={tengah + 12} isi={l.yaKet} maks={50} warna="#b8b199" saiz={11} />
+          <rect
+            x={X_KELUAR}
+            y={atasKeluar}
+            width={LEBAR_KELUAR}
+            height={tinggiKeluar}
+            rx={4}
+            fill={WARNA.papan}
+          />
+          <TeksBaris
+            x={X_KELUAR + LEBAR_KELUAR / 2}
+            mulai={atasKeluar + PAD_SIMPUL + BARIS_JUDUL / 2}
+            lines={yaBaris}
+            warna={WARNA.kapur}
+            tebal
+            saiz={12.5}
+            tinggiBaris={BARIS_JUDUL}
+          />
+          {yaKetBaris.length > 0 && (
+            <TeksBaris
+              x={X_KELUAR + LEBAR_KELUAR / 2}
+              mulai={atasKeluar + PAD_SIMPUL + yaBaris.length * BARIS_JUDUL + BARIS_KET / 2}
+              lines={yaKetBaris}
+              warna="#b8b199"
+              saiz={11}
+              tinggiBaris={BARIS_KET}
+            />
           )}
         </g>
       );
 
       if (adaBerikut) {
-        panah.push(<Panah key={`pt${i}`} id={id} x1={SPINE} y1={atas + TINGGI_BELAH} x2={SPINE} y2={atas + TINGGI_BELAH + JARAK} />);
+        panah.push(<Panah key={`pt${i}`} id={id} x1={SPINE} y1={atas + tinggiBelah} x2={SPINE} y2={atas + tinggiBelah + JARAK} />);
         simpul.push(
-          <Teks key={`td${i}`} x={SPINE + 26} y={atas + TINGGI_BELAH + JARAK / 2} isi="Tidak" maks={10} tebal warna={WARNA.tintaMuted} saiz={11.5} />
+          <TeksBaris key={`td${i}`} x={SPINE + 26} mulai={atas + tinggiBelah + JARAK / 2} lines={['Tidak']} warna={WARNA.tintaMuted} tebal saiz={11.5} tinggiBaris={BARIS_KET} />
         );
       }
-      y = atas + TINGGI_BELAH + JARAK;
+      y = atas + tinggiBelah + JARAK;
       kini.push('keputusan');
     } else {
-      const h = l.ket ? TINGGI_SIMPUL_DUA : TINGGI_SIMPUL;
       if (i > 0 && kini[kini.length - 1] !== 'keputusan') {
         panah.push(<Panah key={`p${i}`} id={id} x1={SPINE} y1={y - JARAK} x2={SPINE} y2={y} />);
       } else if (i > 0 && kini[kini.length - 1] === 'keputusan') {
         // Sudah digambar oleh cabang "Tidak" keputusan sebelumnya.
       }
-      gambarSimpul(l, y);
-      y += h + JARAK;
+      // Tinggi diambil dari nilai kembalian, karena kini bergantung jumlah baris.
+      y += gambarSimpul(l, y) + JARAK;
       kini.push('simpul');
     }
   }
@@ -233,9 +296,11 @@ const DiagramAlir: React.FC<{
   if (akhir && kini[kini.length - 1] === 'keputusan') {
     const atas = y;
     panah.push(<Panah key="pakhir" id={id} x1={SPINE} y1={atas - JARAK} x2={SPINE} y2={atas} />);
-    simpul.push(<rect key="rakhir" x={SPINE - LEBAR_SIMPUL / 2} y={atas} width={LEBAR_SIMPUL} height={TINGGI_SIMPUL} rx={4} fill={WARNA.kertas} stroke={WARNA.garis} strokeWidth={1.25} />);
-    simpul.push(<Teks key="takhir" x={SPINE} y={atas + TINGGI_SIMPUL / 2} isi={akhir} maks={54} tebal />);
-    y += TINGGI_SIMPUL + 20;
+    const akhirBaris = baris(akhir, MAKS_JUDUL);
+    const tinggiAkhir = PAD_SIMPUL * 2 + akhirBaris.length * BARIS_JUDUL;
+    simpul.push(<rect key="rakhir" x={SPINE - LEBAR_SIMPUL / 2} y={atas} width={LEBAR_SIMPUL} height={tinggiAkhir} rx={4} fill={WARNA.kertas} stroke={WARNA.garis} strokeWidth={1.25} />);
+    simpul.push(<TeksBaris key="takhir" x={SPINE} mulai={atas + PAD_SIMPUL + BARIS_JUDUL / 2} lines={akhirBaris} warna={WARNA.tinta} tebal saiz={12.5} tinggiBaris={BARIS_JUDUL} />);
+    y += tinggiAkhir + 20;
   }
 
   const H = y + 6;

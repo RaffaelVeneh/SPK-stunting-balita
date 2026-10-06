@@ -12,6 +12,7 @@ import type {
 import { exportSpkToExcel } from '../utils/exportExcel';
 import { MethodologyGuide } from '../components/MethodologyGuide';
 import { ProofPanel } from '../components/ProofPanel';
+import { KriteriaDetail } from '../components/KriteriaDetail';
 import {
   GoresanKelengkapan,
   PenandaTingkat,
@@ -23,6 +24,36 @@ import {
 import { AlertTriangle, X, ShieldAlert, Search } from 'lucide-react';
 import { useHitungNaik } from '../hooks/useHitungNaik';
 
+/** Judul kolom yang bisa diklik untuk menyortir. */
+const ThSortir: React.FC<{
+  kolom: string;
+  aktif: boolean;
+  arah: 'naik' | 'turun';
+  rata?: 'kiri' | 'kanan';
+  judul?: string;
+  onClick: (kolom: string) => void;
+  children: React.ReactNode;
+}> = ({ kolom, aktif, arah, rata = 'kiri', judul, onClick, children }) => (
+  <th className={`px-3 py-2.5 ${rata === 'kanan' ? 'text-right' : 'text-left'}`}>
+    <button
+      type="button"
+      onClick={() => onClick(kolom)}
+      title={`Urutkan menurut ${judul ?? kolom}`}
+      aria-label={`Urutkan menurut ${judul ?? kolom}`}
+      className={`inline-flex items-center gap-1 font-bold transition-colors ${
+        aktif ? 'text-tinta-900' : 'text-tinta-400 hover:text-tinta-700'
+      }`}
+    >
+      {children}
+      <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden className={aktif ? '' : 'opacity-25'}>
+        <path
+          d={aktif && arah === 'turun' ? 'M4 7 L1 2 L7 2 Z' : 'M4 1 L7 6 L1 6 Z'}
+          fill="currentColor"
+        />
+      </svg>
+    </button>
+  </th>
+);
 export type Seksi = 'triase' | 'bukti' | 'panduan';
 
 interface Props {
@@ -40,8 +71,20 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   const [limit, setLimit] = useState(120);
   const [filter, setFilter] = useState('all');
   const [cari, setCari] = useState('');
+
+  // Goresan tally atau angka mentah. Angka berguna saat pengguna perlu membaca
+  // nilai dengan cepat atau menyalinnya; goresan lebih cepat dipindai sekilas.
+  // Pilihannya diingat supaya tidak perlu diulang tiap kali halaman dibuka.
+  const [tampilan, setTampilan] = useState<'goresan' | 'angka'>(() => {
+    if (typeof window === 'undefined') return 'goresan';
+    return window.localStorage.getItem('spk_tampilan') === 'angka' ? 'angka' : 'goresan';
+  });
+  useEffect(() => {
+    window.localStorage.setItem('spk_tampilan', tampilan);
+  }, [tampilan]);
   const [loading, setLoading] = useState(true);
   const [rincian, setRincian] = useState<RankingItem | null>(null);
+  const [kriteriaTerbuka, setKriteriaTerbuka] = useState<string | null>(null);
 
   /* --- muat metadata sekali --- */
   useEffect(() => {
@@ -132,10 +175,13 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     const akar = document.documentElement;
     const lebar = window.innerWidth - akar.clientWidth;
     const gulirAkarLama = akar.style.overflow;
-    const gulirBodyLama = document.body.style.overflow;
     const padLama = document.body.style.paddingRight;
+    // HANYA <html> yang dikunci, dan itu disengaja. Memasang overflow hidden
+    // pada <html> DAN <body> sekaligus menjadikan <body> scrollport tersendiri;
+    // elemen sticky di dalamnya lalu mengikat ke scrollport itu, sehingga rel
+    // dan pita kepala melompat keluar layar begitu rincian dibuka. Diuji:
+    // html+body -> nav top -1000; html saja -> nav top 0, gulir tetap terkunci.
     akar.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
     if (lebar > 0) document.body.style.paddingRight = (lebar + 'px');
     const tekan = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setRincian(null);
@@ -143,11 +189,60 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     window.addEventListener('keydown', tekan);
     return () => {
       akar.style.overflow = gulirAkarLama;
-      document.body.style.overflow = gulirBodyLama;
       document.body.style.paddingRight = padLama;
       window.removeEventListener('keydown', tekan);
     };
   }, [rincian]);
+  // --- Sortir tabel ---
+  const [urut, setUrut] = useState<{ kolom: string; arah: 'naik' | 'turun' }>({
+    kolom: 'rank',
+    arah: 'naik',
+  });
+
+  const klikSortir = useCallback((kolom: string) => {
+    setUrut((s) =>
+      s.kolom === kolom
+        ? { kolom, arah: s.arah === 'naik' ? 'turun' : 'naik' }
+        : {
+            kolom,
+            // Kolom teks mulai dari A–Z, kolom angka mulai dari yang terbesar.
+            arah: kolom === 'id' || kolom === 'name' ? 'naik' : 'turun',
+          },
+    );
+  }, []);
+
+  const barisTampil = useMemo(() => {
+    const URUT_TINGKAT: Record<string, number> = {
+      'Sangat Tinggi': 0,
+      Tinggi: 1,
+      Sedang: 2,
+      Rendah: 3,
+    };
+    const nilai = (r: RankingItem): number | string => {
+      if (urut.kolom === 'rank') return r.rank;
+      if (urut.kolom === 'score') return r.score;
+      if (urut.kolom === 'id') return r.id;
+      if (urut.kolom === 'name') return r.name;
+      if (urut.kolom === 'tingkat') return URUT_TINGKAT[r.priority_level] ?? 9;
+      const nilaiBalita = balitas.find((x) => x.id === r.id)?.values ?? {};
+      if (urut.kolom === 'data') {
+        return Object.values(nilaiBalita).filter((v) => typeof v === 'number' && v > 0)
+          .length;
+      }
+      const v = nilaiBalita[urut.kolom];
+      // Sel kosong selalu di bawah, ke arah mana pun diurutkan.
+      return typeof v === 'number' ? v : -1;
+    };
+    const tanda = urut.arah === 'naik' ? 1 : -1;
+    return [...baris].sort((a, b) => {
+      const va = nilai(a);
+      const vb = nilai(b);
+      if (typeof va === 'string' && typeof vb === 'string') {
+        return va.localeCompare(vb, 'id') * tanda;
+      }
+      return ((va as number) - (vb as number)) * tanda;
+    });
+  }, [baris, urut, balitas]);
   if (seksi === 'bukti') {
     return (
       <div className="masuk">
@@ -185,9 +280,8 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
       {/* Pita bobot: urutan di bawah ini berasal dari lebar kolom ini. */}
       <PitaBobot
         criteria={criteria}
-        onPilih={() => {
-          /* kriteria terkunci: menekan kolom hanya menyorot, tidak mengubah apa pun */
-        }}
+        terpilih={kriteriaTerbuka}
+        onPilih={(kode) => setKriteriaTerbuka(kode)}
       />
 
       {/* Kendali: standar web, bukan kostum dunia. */}
@@ -242,6 +336,27 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
           </div>
         </div>
 
+        <div className="inline-flex border border-rambut" role="group" aria-label="Bentuk tampilan skor kriteria">
+          {([
+            ['goresan', 'Goresan'],
+            ['angka', 'Angka'],
+          ] as const).map(([nilai, label]) => (
+            <button
+              key={nilai}
+              type="button"
+              onClick={() => setTampilan(nilai)}
+              aria-pressed={tampilan === nilai}
+              className={`px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                tampilan === nilai
+                  ? 'bg-papan-700 text-kapur-50'
+                  : 'bg-kertas-50 text-tinta-500 hover:bg-kertas-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <p className="ml-auto text-xs text-tinta-500">
           <span className="tnum font-bold text-tinta-900">{Math.round(nBaris)}</span> dari{' '}
           <span className="tnum">{Math.round(nTotal)}</span> balita
@@ -277,34 +392,38 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
           <table className="w-full min-w-[1120px] text-xs">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-rambut">
-                <th className="px-3 py-2.5 text-right font-bold text-tinta-400">#</th>
-                <th className="px-2 py-2.5 text-left font-bold text-tinta-400">Skor</th>
-                <th className="px-3 py-2.5 text-left font-bold text-tinta-400">Kode</th>
-                <th className="px-3 py-2.5 text-left font-bold text-tinta-400">Balita</th>
+                <ThSortir kolom="rank" aktif={urut.kolom === 'rank'} arah={urut.arah} rata="kanan" judul="peringkat" onClick={klikSortir}>#</ThSortir>
+                <ThSortir kolom="score" aktif={urut.kolom === 'score'} arah={urut.arah} judul="skor" onClick={klikSortir}>Skor</ThSortir>
+                <ThSortir kolom="id" aktif={urut.kolom === 'id'} arah={urut.arah} judul="kode balita" onClick={klikSortir}>Kode</ThSortir>
+                <ThSortir kolom="name" aktif={urut.kolom === 'name'} arah={urut.arah} judul="nama balita" onClick={klikSortir}>Balita</ThSortir>
                 {criteria.map((c) => (
-                  <th
+                  <ThSortir
                     key={c.code}
-                    className="px-2.5 py-2.5 text-left font-bold text-tinta-400"
-                    title={`${c.name} — bobot ${(c.weight * 100).toFixed(2)}%`}
+                    kolom={c.code}
+                    aktif={urut.kolom === c.code}
+                    arah={urut.arah}
+                    judul={`${c.name} (bobot ${(c.weight * 100).toFixed(2)}%)`}
+                    onClick={klikSortir}
                   >
                     {c.code}
-                  </th>
+                  </ThSortir>
                 ))}
-                <th className="px-3 py-2.5 text-left font-bold text-tinta-400">Data</th>
-                <th className="px-3 py-2.5 text-left font-bold text-tinta-400">Tingkat</th>
+                <ThSortir kolom="data" aktif={urut.kolom === 'data'} arah={urut.arah} judul="kelengkapan data" onClick={klikSortir}>Data</ThSortir>
+                <ThSortir kolom="tingkat" aktif={urut.kolom === 'tingkat'} arah={urut.arah} judul="tingkat prioritas" onClick={klikSortir}>Tingkat</ThSortir>
                 <th className="px-3 py-2.5 text-left font-bold text-tinta-400">Tindakan</th>
                 <th className="px-3 py-2.5" />
               </tr>
             </thead>
             <tbody>
-              {baris.map((r) => {
+              {barisTampil.map((r, i) => {
+
                 const b = balitas.find((x) => x.id === r.id);
                 const t = TINGKAT[r.priority_level];
                 return (
                   <tr
                     key={r.id}
-                    className="baris-masuk border-b border-rambut align-middle last:border-0"
-                    style={{ '--tunda': `${Math.min(baris.indexOf(r), 14) * 26}ms` } as React.CSSProperties}
+                    className={`border-b border-rambut align-middle last:border-0${i < 16 ? ' baris-masuk' : ''}`}
+                    style={i < 16 ? ({ '--tunda': `${i * 26}ms` } as React.CSSProperties) : undefined}
                   >
                     <td className="tnum px-3 py-2 text-right font-display text-base font-bold text-tinta-900">
                       <span className="tanda-baris mr-1.5" aria-hidden />
@@ -331,7 +450,15 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                       return (
                         <td key={c.code} className="px-2.5 py-2">
                           <span className={ada ? t.warna : 'text-tinta-400'}>
-                            <Tally skor={ada ? v : 0} ukuran="sm" />
+                            {tampilan === 'angka' ? (
+                              ada ? (
+                                <span className="tnum text-xs font-bold">{v}</span>
+                              ) : (
+                                <span className="text-xs text-tinta-400">&mdash;</span>
+                              )
+                            ) : (
+                              <Tally skor={ada ? v : 0} ukuran="sm" />
+                            )}
                           </span>
                         </td>
                       );
@@ -373,6 +500,20 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
       )}
 
       {/* ---------------------------------------------------------------- */}
+      {/* DETAIL KRITERIA — dibuka dari pita bobot. */}
+      {kriteriaTerbuka &&
+        (() => {
+          const c = criteria.find((x) => x.code === kriteriaTerbuka);
+          if (!c) return null;
+          return (
+            <KriteriaDetail
+              kriteria={c}
+              tfn={ahp?.ahp_result?.tfn?.[kriteriaTerbuka]}
+              tegas={ahp?.ahp_result?.weights?.[kriteriaTerbuka]}
+              onTutup={() => setKriteriaTerbuka(null)}
+            />
+          );
+        })()}
       {/* RINCIAN PER BALITA                                                */}
       {/* ------------------------------------------------------------------ */}
       {/* Panel rincian dirender lewat portal ke <body>. Alasannya bukan gaya:
@@ -463,7 +604,15 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                       )}
                     </div>
                     <span className={ada ? t.warna : 'text-tinta-400'}>
-                      <Tally skor={ada ? v : 0} />
+                      {tampilan === 'angka' ? (
+                        ada ? (
+                          <span className="tnum text-sm font-bold">{v}</span>
+                        ) : (
+                          <span className="text-sm text-tinta-400">&mdash;</span>
+                        )
+                      ) : (
+                        <Tally skor={ada ? v : 0} />
+                      )}
                     </span>
                   </div>
                 );
