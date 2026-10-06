@@ -595,8 +595,13 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                         type="button"
                         onClick={async () => {
                           try {
+                            setGalatAksi(null);
                             await api.ubahStatusAktif(r.id);
                             await muatStatus();
+                            // WAJIB: tanpa menghitung ulang, tabel masih merender
+                            // hasil perhitungan lama sehingga barisnya tidak
+                            // bergerak dan tombolnya tidak terlihat berubah.
+                            await hitung();
                           } catch (e) {
                             setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
                           }
@@ -609,7 +614,67 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                   </tr>
                 );
               })}
-            </tbody>
+              {barisNonaktif.map((b) => {
+                const t2 = TINGKAT['Rendah'];
+                return (
+                  <tr key={b.id} className="border-b border-rambut align-middle opacity-45 last:border-0">
+                    <td className="tnum px-3 py-2 text-right font-display text-base font-bold text-tinta-400">
+                      &mdash;
+                    </td>
+                    <td className="px-2 py-2 text-tinta-400">&mdash;</td>
+                    <td className="tnum px-3 py-2 font-display text-sm font-bold text-tinta-900">{b.id}</td>
+                    <td className="px-3 py-2 text-xs text-tinta-700">{b.name}</td>
+                    {criteria.map((c) => {
+                      const v = b.values?.[c.code];
+                      return (
+                        <td key={c.code} className="px-2.5 py-2">
+                          <span className="text-tinta-400">
+                            {tampilan === 'angka' ? (
+                              <span className="tnum text-xs font-bold">{v ?? '—'}</span>
+                            ) : (
+                              <Tally skor={typeof v === 'number' ? v : 0} ukuran="sm" />
+                            )}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    <td className="tnum px-3 py-2 text-xs text-tinta-400">7/7</td>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs font-bold uppercase tracking-wide ${t2.teks}`}>
+                        Nonaktif
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-tinta-400">
+                      Tidak ikut perhitungan
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setGalatAksi(null);
+                            await api.ubahStatusAktif(b.id);
+                            await muatStatus();
+                            await hitung();
+                          } catch (e) {
+                            setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
+                          }
+                        }}
+                        className="whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-papan-700 transition-colors hover:bg-kertas-200"
+                      >
+                        Aktifkan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ mode: 'edit', data: b })}
+                        className="ml-1.5 whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}            </tbody>
           </table>
         </div>
       )}
@@ -677,53 +742,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
         </div>
       )}
 
-      {/* BALITA NONAKTIF — tetap tampil, diredupkan, bisa diaktifkan kembali. */}
-      {barisNonaktif.length > 0 && (
-        <section className="mt-6 border-t border-rambut pt-4">
-          <h3 className="text-[13px] font-bold text-tinta-900">
-            Balita nonaktif ({barisNonaktif.length})
-          </h3>
-          <p className="mt-0.5 max-w-[70ch] text-xs leading-relaxed text-tinta-500">
-            Tidak ikut perhitungan dan tidak muncul di peringkat, tetapi datanya tetap
-            tersimpan. Aktifkan kembali kalau ternyata masih terpakai.
-          </p>
-          <ul className="mt-3 divide-y divide-rambut border-y border-rambut">
-            {barisNonaktif.map((b) => (
-              <li key={b.id} className="flex items-center gap-3 py-2 opacity-45">
-                <span className="tnum w-24 shrink-0 font-display text-sm font-bold text-tinta-900">
-                  {b.id}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-tinta-700">{b.name}</span>
-                <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-tinta-400">
-                  Nonaktif
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await api.ubahStatusAktif(b.id);
-                      await muatStatus();
-                    } catch (e) {
-                      setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
-                    }
-                  }}
-                  className="shrink-0 rounded border border-rambut px-2 py-1 text-xs font-bold text-papan-700 transition-colors hover:bg-kertas-200"
-                >
-                  Aktifkan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm({ mode: 'edit', data: b })}
-                  className="shrink-0 rounded border border-rambut px-2 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200"
-                >
-                  Edit
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {/* RINCIAN PER BALITA                                                */}
+            {/* RINCIAN PER BALITA                                                */}
       {/* ------------------------------------------------------------------ */}
       {/* Panel rincian dirender lewat portal ke <body>. Alasannya bukan gaya:
           pembungkus halaman memakai kelas `masuk` yang meninggalkan
