@@ -3,7 +3,7 @@ name: spk-stunting
 services:
   # MySQL Database
   mysql:
-    image: mysql:8.4
+    image: ${MYSQL_IMAGE:-mysql:8.4}
     container_name: spk-stunting-mysql
     mem_limit: 768m
     restart: unless-stopped
@@ -25,7 +25,7 @@ services:
 
   # phpMyAdmin Web UI
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    image: ${PMA_IMAGE:-phpmyadmin/phpmyadmin:latest}
     container_name: spk-stunting-phpmyadmin
     mem_limit: 192m
     restart: unless-stopped
@@ -43,7 +43,7 @@ services:
 
   # Redis Cache & Queue
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     container_name: spk-stunting-redis
     mem_limit: 192m
     restart: unless-stopped
