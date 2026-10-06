@@ -68,7 +68,15 @@ export const api = {
       this.setUser(data.user);
       return data;
     } catch (err: unknown) {
-      if (err instanceof TypeError && err.message.includes('fetch')) {
+      // SESI PALSU DIMATIKAN DI PRODUKSI.
+      //
+      // Sebelumnya, kegagalan jaringan apa pun membuat aplikasi mengarang
+      // sesi dengan token 'mock-dev-token-uny' dan membiarkan pengguna masuk.
+      // Token itu bukan token Sanctum, sehingga pembacaan berhasil (rute GET
+      // tidak butuh sesi) tetapi SETIAP PENULISAN gagal 401 "Unauthenticated".
+      // Gejalanya menyesatkan: aplikasi tampak berjalan normal, lalu tiba-tiba
+      // menolak menyimpan. Kegagalan masuk sekarang ditampilkan apa adanya.
+      if (IZINKAN_CADANGAN && err instanceof TypeError && err.message.includes('fetch')) {
         const superadmins: Record<string, string> = {
           'raffaelvincent.2024@student.uny.ac.id': 'Raffael Vincent',
           'muhammadfaizulhaq.2024@student.uny.ac.id': 'Muhammad Faizul Haq',
@@ -211,6 +219,24 @@ export const api = {
      terpakai dinonaktifkan: keluar dari perhitungan, tetap tampil di daftar.
      ====================================================================== */
 
+  /**
+   * Ubah respons gagal menjadi pesan yang bisa dibaca pengguna.
+   *
+   * Khusus 401: pesannya diganti karena "Unauthenticated." dari Laravel tidak
+   * memberi tahu apa yang harus dilakukan, sedangkan penyebabnya hampir selalu
+   * sesi kedaluwarsa dan cukup diatasi dengan masuk ulang.
+   */
+  pesanGalat(json: unknown, cadangan: string): string {
+    const j = json as { message?: string; errors?: Record<string, string[]> } | null;
+    if (j?.errors) {
+      return Object.values(j.errors).flat().join(' ');
+    }
+    if (j?.message === 'Unauthenticated.') {
+      return 'Sesi Anda tidak sah atau sudah berakhir. Silakan keluar lalu masuk kembali.';
+    }
+    return j?.message || cadangan;
+  },
+
   /** Header permintaan. `isi` menambahkan token untuk permintaan tulis. */
   headers(isi = false): Record<string, string> {
     const h: Record<string, string> = { Accept: 'application/json' };
@@ -229,7 +255,7 @@ export const api = {
   }> {
     const res = await fetch(`${API_BASE_URL}/spk/balita`, { headers: this.headers() });
     if (!res.ok) {
-      throw new Error('Daftar balita tidak dapat dimuat dari server.');
+      throw new Error(this.pesanGalat(await res.json().catch(() => null), 'Daftar balita tidak dapat dimuat dari server.'));
     }
     return res.json();
   },
@@ -243,10 +269,7 @@ export const api = {
     const json = await res.json();
     if (!res.ok) {
       // Pesan validasi dari Laravel dirapikan supaya bisa ditampilkan apa adanya.
-      const pesan = json?.errors
-        ? Object.values(json.errors as Record<string, string[]>).flat().join(' ')
-        : json?.message || 'Data gagal disimpan.';
-      throw new Error(pesan);
+      throw new Error(this.pesanGalat(json, 'Data gagal disimpan.'));
     }
     return json.data;
   },
@@ -259,10 +282,7 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) {
-      const pesan = json?.errors
-        ? Object.values(json.errors as Record<string, string[]>).flat().join(' ')
-        : json?.message || 'Perubahan gagal disimpan.';
-      throw new Error(pesan);
+      throw new Error(this.pesanGalat(json, 'Perubahan gagal disimpan.'));
     }
     return json.data;
   },
@@ -274,7 +294,7 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) {
-      throw new Error(json?.message || 'Status gagal diubah.');
+      throw new Error(this.pesanGalat(json, 'Status gagal diubah.'));
     }
     return json;
   },
