@@ -477,7 +477,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                       </span>
                     </td>
                     <td className="px-3 py-2">
-                      <PenandaTingkat tingkat={r.priority_level} />
+                      <PenandaTingkat tingkat={r.priority_level} tampilan={tampilan} />
                     </td>
                     <td className="px-3 py-2 text-tinta-500">
                       <span className="block max-w-[30ch]">{r.tindakan ?? '—'}</span>
@@ -561,7 +561,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                 Skor MOORA{' '}
                 <span className="tnum font-bold text-tinta-900">{rincian.score.toFixed(4)}</span>
               </p>
-              <PenandaTingkat tingkat={rincian.priority_level} />
+              <PenandaTingkat tingkat={rincian.priority_level} tampilan={tampilan} />
             </div>
 
             {/* Alasan tingkat: dibaca dari aturan klinis, bukan dari skor. */}

@@ -151,7 +151,15 @@ export const TINGKAT: Record<
 };
 
 /** Penanda tingkat: warna + jumlah goresan, jadi terbaca tanpa hue. */
-export const PenandaTingkat: React.FC<{ tingkat: PriorityLevel }> = ({ tingkat }) => {
+/**
+ * Penanda tingkat prioritas. Ikut mode tampilan yang dipilih pengguna: goresan
+ * tally, atau angka tingkatnya. Sebelumnya kolom ini selalu menggambar goresan,
+ * sehingga pilihan "Angka" tidak berpengaruh di sini.
+ */
+export const PenandaTingkat: React.FC<{
+  tingkat: PriorityLevel;
+  tampilan?: 'goresan' | 'angka';
+}> = ({ tingkat, tampilan = 'goresan' }) => {
   const goresan: Record<PriorityLevel, number> = {
     'Sangat Tinggi': 5,
     Tinggi: 4,
@@ -161,9 +169,13 @@ export const PenandaTingkat: React.FC<{ tingkat: PriorityLevel }> = ({ tingkat }
   const t = TINGKAT[tingkat];
   return (
     <span className={`inline-flex items-center gap-2 font-bold text-xs ${t.teks}`}>
-      <span className={t.warna}>
-        <Tally skor={goresan[tingkat]} ukuran="sm" />
-      </span>
+      {tampilan === 'angka' ? (
+        <span className={`tnum ${t.teks}`}>{goresan[tingkat]}</span>
+      ) : (
+        <span className={t.warna}>
+          <Tally skor={goresan[tingkat]} ukuran="sm" />
+        </span>
+      )}
       <span className="uppercase tracking-wide">{tingkat}</span>
     </span>
   );
