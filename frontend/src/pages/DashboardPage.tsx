@@ -197,9 +197,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   // PENTING: hook harus dipanggil sebelum return awal mana pun. Kalau
   // diletakkan setelah cabang 'bukti' atau 'panduan', jumlah hook berubah saat
   // berpindah tab, React melempar error #300, dan seluruh halaman jadi kosong.
-  const nBaris = useHitungNaik(baris.length);
-  const nTotal = useHitungNaik(result?.rankings.length ?? 0);
-  const nParsial = useHitungNaik(jumlahParsial);
+
   // Kunci gulir halaman selama rincian terbuka, supaya latar tidak ikut
   // bergulir di belakang panel. Lebar bilah gulir dikompensasi sebagai padding
   // kanan supaya tata letak tidak melompat saat bilahnya menghilang.
@@ -297,6 +295,14 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     (halamanAman - 1) * PER_HALAMAN,
     halamanAman * PER_HALAMAN,
   );
+  // Angka yang bergulir naik. Angka pertama adalah yang BENAR-BENAR tampil di
+  // halaman ini, bukan seluruh hasil penyaringan, supaya penghitungnya sesuai
+  // dengan yang terlihat: "100 dari 120" saat halaman berisi 100 baris.
+  // Angka kedua tetap total seluruh balita, supaya penyaringan tidak
+  // menghilangkan gambaran besarnya.
+  const nBaris = useHitungNaik(barisHalaman.length);
+  const nTotal = useHitungNaik(result?.rankings.length ?? 0);
+  const nParsial = useHitungNaik(jumlahParsial);
 
   if (seksi === 'bukti') {
     return (
