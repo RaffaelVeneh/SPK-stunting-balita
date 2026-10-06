@@ -104,5 +104,10 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ]
         );
+
+        // 5. Data balita dari dataset CSV. Seeder ini berhenti sendiri kalau
+        // tabel sudah berisi, supaya `migrate --seed` di produksi tidak
+        // menimpa data yang sudah diedit pengguna.
+        $this->call(BalitaSpkSeeder::class);
     }
 }

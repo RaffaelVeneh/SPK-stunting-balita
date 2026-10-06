@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BalitaController;
 use App\Http\Controllers\SpkController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,4 +37,15 @@ Route::prefix('spk')->group(function () {
     // Dataset dummy 7 kriteria (dummy_balita_7kriteria.csv)
     Route::get('/dataset/samples', [SpkController::class, 'datasetSamples']);
     Route::get('/dataset/summary', [SpkController::class, 'datasetSummary']);
+
+    // CRUD data balita. Penulisan wajib sesi sah; pembacaan terbuka seperti
+    // endpoint SPK lain. Tidak ada rute hapus permanen.
+    Route::prefix('balita')->group(function () {
+        Route::get('/', [BalitaController::class, 'index']);
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/', [BalitaController::class, 'store']);
+            Route::put('/{kode}', [BalitaController::class, 'update']);
+            Route::post('/{kode}/aktif', [BalitaController::class, 'toggleAktif']);
+        });
+    });
 });

@@ -7,6 +7,7 @@ use App\Services\SPK\AhpService;
 use App\Services\SPK\FuzzyAhpService;
 use App\Services\SPK\KriteriaDefinition;
 use App\Services\SPK\SpkEngine;
+use App\Models\BalitaSpk;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 
@@ -111,6 +112,38 @@ class SpkController extends Controller
      * Metode difiksasi ke MOORA. Parameter 'method' tetap diterima demi
      * kompatibilitas, tetapi hanya 'moora' yang valid.
      */
+    /**
+     * Buang balita berstatus nonaktif dari daftar alternatif.
+     *
+     * @param  array<int, array<string, mixed>>  $alternatives
+     * @return array<int, array<string, mixed>>
+     */
+    private function buangNonaktif(array $alternatives): array
+    {
+        $kode = array_values(array_filter(array_map(
+            fn ($a) => is_array($a) ? ($a['id'] ?? null) : null,
+            $alternatives
+        )));
+
+        if ($kode === []) {
+            return $alternatives;
+        }
+
+        $nonaktif = BalitaSpk::whereIn('kode', $kode)
+            ->where('aktif', false)
+            ->pluck('kode')
+            ->all();
+
+        if ($nonaktif === []) {
+            return $alternatives;
+        }
+
+        return array_values(array_filter(
+            $alternatives,
+            fn ($a) => ! in_array(is_array($a) ? ($a['id'] ?? null) : null, $nonaktif, true)
+        ));
+    }
+
     public function calculate(Request $request)
     {
         $request->validate([
@@ -123,6 +156,12 @@ class SpkController extends Controller
             'criteria.*.code' => ['required_with:criteria', 'string'],
             'criteria.*.weight' => ['required_with:criteria', 'numeric', 'min:0'],
         ]);
+
+        // ----------------------------------------------------------------
+        // BALITA NONAKTIF DIKELUARKAN DARI PERHITUNGAN, di server.
+        // Klien boleh saja mengirimkannya; ia tetap dibuang di sini. Balita
+        // nonaktif tetap ada di basis data dan tetap tampil di daftar.
+        // ----------------------------------------------------------------
 
         // ================================================================
         // BOBOT TERKUNCI — TIDAK DINAMIS.
@@ -145,7 +184,8 @@ class SpkController extends Controller
         try {
             $result = $this->spkEngine->calculate(
                 $request->input('method', 'moora'),
-                $request->alternatives,
+                // Balita nonaktif dibuang DI SINI, di server, bukan di peramban.
+                $this->buangNonaktif($request->alternatives ?? []),
                 $criteria
             );
 
