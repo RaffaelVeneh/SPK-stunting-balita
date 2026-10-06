@@ -211,6 +211,69 @@ Itu memang disengaja: lihat catatan di bawah.
 
 ---
 
+## Berdampingan dengan aplikasi lain di VPS yang sama
+
+Kalau VPS Anda sudah menjalankan aplikasi lain (misalnya stack `segara` dengan
+PHP-FPM, MySQL, Redis, queue worker, dan realtime WebSocket), **port bawaan
+stack ini akan bentrok.** Yang bertabrakan:
+
+| Port | Dipakai oleh | Stack ini memakai |
+|---|---|---|
+| 8000 | `segara-webserver` | `BACKEND_PORT` |
+| 3307 | `segara-db` | `MYSQL_PORT` |
+| 6380 | `segara-redis` | `REDIS_PORT` |
+
+Akibatnya, `docker compose up` gagal dengan pesan `port is already allocated`.
+Docker **tidak** akan mematikan container `segara` yang sudah jalan — jadi
+aplikasi lama Anda aman. Tetapi ada skenario yang lebih berbahaya: kalau
+`segara` sedang **mati** saat stack ini dinyalakan, stack ini akan merebut
+portnya, sehingga `segara` gagal start saat dinyalakan kembali. Itu gangguan
+pada layanan yang sedang berjalan.
+
+**Karena itu, pilih port lain di `.env` sebelum deploy pertama:**
+
+```bash
+FRONTEND_PORT=3000      # satu-satunya port yang perlu dibuka; arahkan proxy ke sini
+BACKEND_PORT=8010
+MYSQL_PORT=3317
+REDIS_PORT=6390
+PMA_PORT=8082
+```
+
+Yang **tidak** bentrok dan tidak perlu diubah: nama proyek (`spk-stunting` vs
+`segara-admin`), nama container (`spk-stunting-*` vs `segara-*`), jaringan
+Docker, dan volume. Semuanya terpisah, jadi kedua stack tidak saling melihat.
+
+### Yang perlu dihindari
+
+- **Jangan** menjalankan `docker compose down` dari direktori yang salah. Kalau
+  Anda berada di folder proyek lain, perintah itu akan mematikan proyek itu.
+  Selalu `cd` ke folder proyek dulu, atau pakai `-f` dengan jalur lengkap.
+- **Jangan** memakai `docker system prune -a`. Perintah itu menghapus image
+  yang tidak sedang dipakai, termasuk milik proyek lain, sehingga start
+  berikutnya menjadi lambat karena harus menarik ulang. `docker image prune -f`
+  (tanpa `-a`) hanya membuang image menggantung dan aman.
+- **Selalu** jalankan compose dari dalam folder proyek. Docker Compose membaca
+  berkas `.env` dari **direktori kerja saat itu**, bukan dari lokasi berkas
+  compose. Kalau dijalankan dari folder induk, variabel dari proyek lain bisa
+  terbaca.
+
+### Batas memori
+
+Setiap layanan stack ini sudah diberi `mem_limit` (MySQL 768m, Redis 192m,
+backend 512m, frontend 128m, phpMyAdmin 192m — total di bawah 1,8 GB) supaya
+tidak bisa menghabiskan RAM sampai mengganggu aplikasi lain. Pastikan VPS Anda
+masih punya ruang sebanyak itu sebelum menyalakannya:
+
+```bash
+free -h
+```
+
+Kalau phpMyAdmin tidak diperlukan di VPS, matikan saja untuk menghemat memori:
+
+```bash
+docker compose stop phpmyadmin
+```
 ## Memperbarui aplikasi
 
 ```bash
