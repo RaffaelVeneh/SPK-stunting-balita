@@ -503,7 +503,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                 return (
                   <tr
                     key={r.id}
-                    className={`border-b border-rambut align-middle last:border-0${i < 16 ? ' baris-masuk' : ''}${r.aktif === false ? ' opacity-45' : ''}`}
+                    className={`border-b border-rambut align-middle last:border-0${i < 16 && r.aktif !== false ? ' baris-masuk' : ''}${r.aktif === false ? ' bg-kertas-200 opacity-50' : ' bg-kertas-50'}`}
                     style={i < 16 ? ({ '--tunda': `${i * 26}ms` } as React.CSSProperties) : undefined}
                   >
                     <td className="tnum px-3 py-2 text-right font-display text-base font-bold text-tinta-900">
@@ -559,7 +559,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                     </td>
                     <td className="px-3 py-2">
                       {r.aktif === false ? (
-                        <span className="text-xs font-bold uppercase tracking-wide text-tinta-400">
+                        <span className="bg-tinta-500 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-kapur-50">
                           Nonaktif
                         </span>
                       ) : (
@@ -589,6 +589,21 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                         onClick={async () => {
                           try {
                             setGalatAksi(null);
+                            // Ubah tampilannya di layar LEBIH DULU. Tanpa ini
+                            // pengguna harus menunggu satu perjalanan ke server
+                            // ditambah satu perhitungan penuh sebelum melihat
+                            // apa pun berubah, dan di VPS itu terasa seperti
+                            // tombolnya tidak bekerja.
+                            setResult((lama) =>
+                              lama
+                                ? {
+                                    ...lama,
+                                    rankings: lama.rankings.map((x) =>
+                                      x.id === r.id ? { ...x, aktif: x.aktif === false } : x,
+                                    ),
+                                  }
+                                : lama,
+                            );
                             await api.ubahStatusAktif(r.id);
                             await muatStatus();
                             // WAJIB: tanpa menghitung ulang, tabel masih merender
