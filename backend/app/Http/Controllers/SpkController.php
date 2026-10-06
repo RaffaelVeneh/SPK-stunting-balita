@@ -9,6 +9,7 @@ use App\Services\SPK\KriteriaDefinition;
 use App\Services\SPK\SpkEngine;
 use App\Models\BalitaSpk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 class SpkController extends Controller
@@ -120,6 +121,13 @@ class SpkController extends Controller
      */
     private function buangNonaktif(array $alternatives): array
     {
+        // Kalau tabelnya belum ada, penyaringan dilewati. Ini terjadi di
+        // lingkungan uji yang memakai basis data tanpa migrasi lengkap; tanpa
+        // penjagaan ini seluruh endpoint perhitungan gagal 500.
+        if (! Schema::hasTable('balita_spk')) {
+            return $alternatives;
+        }
+
         $kode = array_values(array_filter(array_map(
             fn ($a) => is_array($a) ? ($a['id'] ?? null) : null,
             $alternatives
