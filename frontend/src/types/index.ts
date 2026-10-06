@@ -47,6 +47,8 @@ export interface Alternative {
 }
 
 export interface RankingItem {
+  /** Dari server. false = keluar dari daftar prioritas tetapi tetap diperingkat. */
+  aktif?: boolean;
   id: string;
   name: string;
   score: number;

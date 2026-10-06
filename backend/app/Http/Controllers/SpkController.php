@@ -114,27 +114,34 @@ class SpkController extends Controller
      * kompatibilitas, tetapi hanya 'moora' yang valid.
      */
     /**
-     * Buang balita berstatus nonaktif dari daftar alternatif.
+     * Tandai balita berstatus nonaktif pada hasil peringkat.
      *
-     * @param  array<int, array<string, mixed>>  $alternatives
+     * Balita nonaktif TIDAK dibuang dari hasil. Ia tetap diperingkat supaya
+     * posisinya terlihat: pengguna perlu tahu ke urutan berapa ia kembali kalau
+     * diaktifkan lagi. Yang berubah hanya penandanya, dan antarmuka memakai
+     * penanda itu untuk meredupkan barisnya, menuliskan "Nonaktif" pada kolom
+     * Tingkat, dan mengganti tombolnya menjadi Aktifkan.
+     *
+     * Konsekuensinya, peringkat balita aktif bisa bergeser ketika ada yang
+     * dinonaktifkan. Itu memang diinginkan: daftar prioritas tetap berurutan
+     * tanpa lubang.
+     *
+     * @param  array<int, array<string, mixed>>  $rankings
      * @return array<int, array<string, mixed>>
      */
-    private function buangNonaktif(array $alternatives): array
+    private function tandaiNonaktif(array $rankings): array
     {
-        // Kalau tabelnya belum ada, penyaringan dilewati. Ini terjadi di
-        // lingkungan uji yang memakai basis data tanpa migrasi lengkap; tanpa
-        // penjagaan ini seluruh endpoint perhitungan gagal 500.
         if (! Schema::hasTable('balita_spk')) {
-            return $alternatives;
+            return $rankings;
         }
 
         $kode = array_values(array_filter(array_map(
-            fn ($a) => is_array($a) ? ($a['id'] ?? null) : null,
-            $alternatives
+            fn ($r) => is_array($r) ? ($r['id'] ?? null) : null,
+            $rankings
         )));
 
         if ($kode === []) {
-            return $alternatives;
+            return $rankings;
         }
 
         $nonaktif = BalitaSpk::whereIn('kode', $kode)
@@ -142,14 +149,13 @@ class SpkController extends Controller
             ->pluck('kode')
             ->all();
 
-        if ($nonaktif === []) {
-            return $alternatives;
-        }
+        return array_map(function ($r) use ($nonaktif) {
+            if (is_array($r)) {
+                $r['aktif'] = ! in_array($r['id'] ?? null, $nonaktif, true);
+            }
 
-        return array_values(array_filter(
-            $alternatives,
-            fn ($a) => ! in_array(is_array($a) ? ($a['id'] ?? null) : null, $nonaktif, true)
-        ));
+            return $r;
+        }, $rankings);
     }
 
     public function calculate(Request $request)
@@ -192,10 +198,11 @@ class SpkController extends Controller
         try {
             $result = $this->spkEngine->calculate(
                 $request->input('method', 'moora'),
-                // Balita nonaktif dibuang DI SINI, di server, bukan di peramban.
-                $this->buangNonaktif($request->alternatives ?? []),
+                $request->alternatives ?? [],
                 $criteria
             );
+
+            $result['rankings'] = $this->tandaiNonaktif($result['rankings'] ?? []);
 
             return response()->json([
                 'status' => 'success',

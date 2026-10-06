@@ -91,10 +91,6 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
 
   // --- CRUD data balita ---
   const [form, setForm] = useState<{ mode: 'tambah' | 'edit'; data?: Alternative } | null>(null);
-  // Status aktif per kode, diambil dari basis data. Balita nonaktif keluar dari
-  // perhitungan sehingga tidak muncul di peringkat, tetapi tetap harus tampil di
-  // daftar dengan tampilan redup supaya bisa diaktifkan kembali.
-  const [statusAktif, setStatusAktif] = useState<Record<string, boolean>>({});
 
   // Galat aksi ditampilkan di halaman, bukan lewat window.alert. Alert
   // memblokir seluruh halaman sampai ditekan, sehingga satu permintaan gagal
@@ -105,11 +101,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   const muatStatus = useCallback(async () => {
     try {
       const r = await api.daftarBalita();
-      const peta: Record<string, boolean> = {};
-      r.data.forEach((b) => {
-        peta[b.id] = b.aktif !== false;
-      });
-      setStatusAktif(peta);
+
       const waktu: Record<string, string | null> = {};
       r.data.forEach((b) => {
         waktu[b.id] = b.diperbarui_pada ?? null;
@@ -283,11 +275,6 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
       return ((va as number) - (vb as number)) * tanda;
     });
   }, [baris, urut, balitas]);
-  // Nonaktif tidak ada di peringkat, jadi ditambahkan setelah baris terurut.
-  const barisNonaktif = useMemo(
-    () => balitas.filter((b) => statusAktif[b.id] === false),
-    [balitas, statusAktif],
-  );
 
   const totalHalaman = Math.max(1, Math.ceil(barisTampil.length / PER_HALAMAN));
   const halamanAman = Math.min(halaman, totalHalaman);
@@ -516,7 +503,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                 return (
                   <tr
                     key={r.id}
-                    className={`border-b border-rambut align-middle last:border-0${i < 16 ? ' baris-masuk' : ''}${statusAktif[r.id] === false ? ' opacity-45' : ''}`}
+                    className={`border-b border-rambut align-middle last:border-0${i < 16 ? ' baris-masuk' : ''}${r.aktif === false ? ' opacity-45' : ''}`}
                     style={i < 16 ? ({ '--tunda': `${i * 26}ms` } as React.CSSProperties) : undefined}
                   >
                     <td className="tnum px-3 py-2 text-right font-display text-base font-bold text-tinta-900">
@@ -571,7 +558,13 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                       </span>
                     </td>
                     <td className="px-3 py-2">
-                      <PenandaTingkat tingkat={r.priority_level} tampilan={tampilan} />
+                      {r.aktif === false ? (
+                        <span className="text-xs font-bold uppercase tracking-wide text-tinta-400">
+                          Nonaktif
+                        </span>
+                      ) : (
+                        <PenandaTingkat tingkat={r.priority_level} tampilan={tampilan} />
+                      )}
                     </td>
                     <td className="px-3 py-2 text-tinta-500">
                       <span className="block max-w-[30ch]">{r.tindakan ?? '—'}</span>
@@ -606,75 +599,19 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
                             setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
                           }
                         }}
-                        className="ml-1.5 whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-50"
+                        className={`ml-1.5 whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold transition-colors ${
+                          r.aktif === false
+                            ? 'text-papan-700 hover:bg-kertas-200'
+                            : 'text-amber-900 hover:bg-amber-50'
+                        }`}
                       >
-                        Nonaktifkan
+                        {r.aktif === false ? 'Aktifkan' : 'Nonaktifkan'}
                       </button>
                     </td>
                   </tr>
                 );
               })}
-              {barisNonaktif.map((b) => {
-                const t2 = TINGKAT['Rendah'];
-                return (
-                  <tr key={b.id} className="border-b border-rambut align-middle opacity-45 last:border-0">
-                    <td className="tnum px-3 py-2 text-right font-display text-base font-bold text-tinta-400">
-                      &mdash;
-                    </td>
-                    <td className="px-2 py-2 text-tinta-400">&mdash;</td>
-                    <td className="tnum px-3 py-2 font-display text-sm font-bold text-tinta-900">{b.id}</td>
-                    <td className="px-3 py-2 text-xs text-tinta-700">{b.name}</td>
-                    {criteria.map((c) => {
-                      const v = b.values?.[c.code];
-                      return (
-                        <td key={c.code} className="px-2.5 py-2">
-                          <span className="text-tinta-400">
-                            {tampilan === 'angka' ? (
-                              <span className="tnum text-xs font-bold">{v ?? '—'}</span>
-                            ) : (
-                              <Tally skor={typeof v === 'number' ? v : 0} ukuran="sm" />
-                            )}
-                          </span>
-                        </td>
-                      );
-                    })}
-                    <td className="tnum px-3 py-2 text-xs text-tinta-400">7/7</td>
-                    <td className="px-3 py-2">
-                      <span className={`text-xs font-bold uppercase tracking-wide ${t2.teks}`}>
-                        Nonaktif
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-tinta-400">
-                      Tidak ikut perhitungan
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            setGalatAksi(null);
-                            await api.ubahStatusAktif(b.id);
-                            await muatStatus();
-                            await hitung();
-                          } catch (e) {
-                            setGalatAksi(e instanceof Error ? e.message : 'Status gagal diubah.');
-                          }
-                        }}
-                        className="whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-papan-700 transition-colors hover:bg-kertas-200"
-                      >
-                        Aktifkan
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setForm({ mode: 'edit', data: b })}
-                        className="ml-1.5 whitespace-nowrap rounded border border-rambut px-2 py-1 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}            </tbody>
+            </tbody>
           </table>
         </div>
       )}
