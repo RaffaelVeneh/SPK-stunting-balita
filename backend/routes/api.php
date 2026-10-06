@@ -24,16 +24,16 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-// SPK Decision Support System (AHP Weighting + SAW & MOORA Scoring)
+// SPK Decision Support System (Fuzzy AHP Weighting + MOORA Scoring)
 Route::prefix('spk')->group(function () {
     Route::get('/criteria', [SpkController::class, 'criteria']);
     Route::post('/calculate', [SpkController::class, 'calculate']);
     
-    // AHP Weighting & Consistency Ratio (CR < 0.10)
+    // Fuzzy AHP Weighting & Consistency Ratio (CR < 0.10)
     Route::get('/ahp/matrix', [SpkController::class, 'ahpMatrix']);
     Route::post('/ahp/calculate', [SpkController::class, 'ahpCalculate']);
 
-    // Real Dataset Integration (data_balita.csv)
+    // Dataset dummy 7 kriteria (dummy_balita_7kriteria.csv)
     Route::get('/dataset/samples', [SpkController::class, 'datasetSamples']);
     Route::get('/dataset/summary', [SpkController::class, 'datasetSummary']);
 });

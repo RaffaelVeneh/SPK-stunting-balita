@@ -16,6 +16,13 @@ export interface Criterion {
   type: 'benefit' | 'cost';
   description?: string;
   active?: boolean;
+  /** Tingkat kepentingan (1 = paling penting), diturunkan dari Perpres 72/2021. */
+  tier?: number;
+  /** Jalur sebab akibat: 'Langsung' (Intervensi Spesifik) atau 'Tidak langsung'. */
+  jalur?: string;
+  kelompok?: string;
+  /** Justifikasi penempatan tier, beserta sitasinya. */
+  dasar?: string;
 }
 
 export interface Alternative {
@@ -26,8 +33,11 @@ export interface Alternative {
     row_number?: number;
     umur_bulan?: number;
     jenis_kelamin?: string;
-    tinggi_badan_cm?: number;
+    tinggi_badan_cm?: number | null;
+    haz?: number | null;
     status_gizi?: string;
+    tren_memburuk?: string | null;
+    kelengkapan?: string | null;
   };
 }
 
@@ -40,18 +50,29 @@ export interface RankingItem {
   is_partial?: boolean;
   completeness_ratio?: string;
   missing_criteria?: string[];
-  raw_attributes?: {
-    row_number?: number;
-    umur_bulan?: number;
-    jenis_kelamin?: string;
-    tinggi_badan_cm?: number;
-    status_gizi?: string;
+  /** Ditandai bila data < 5/7 kriteria; tingkatnya tidak boleh diturunkan sepihak. */
+  perlu_verifikasi?: boolean;
+  /** Tindakan klinis yang dianjurkan untuk tingkat ini. */
+  tindakan?: string;
+  raw_attributes?: Alternative['raw_attributes'];
+  details?: {
+    method?: string;
+    benefit_score?: number;
+    cost_score?: number;
+    /** Alasan penetapan tingkat prioritas menurut aturan klinis. */
+    tingkat_dasar?: string;
+    n_kriteria_tinggi?: number;
+    nilai_ordinal?: Record<string, number>;
+    [key: string]: unknown;
   };
-  details?: Record<string, unknown>;
 }
 
+/**
+ * Sistem ini memakai SATU metode skoring saja, yaitu MOORA. SAW sudah dihapus
+ * supaya tidak ada dua rumus yang berjalan bersamaan.
+ */
 export interface CalculationResult {
-  method: 'saw' | 'moora';
+  method: 'moora';
   rankings: RankingItem[];
   normalized_matrix: Record<string, Record<string, number>>;
   weighted_matrix: Record<string, Record<string, number>>;
@@ -64,13 +85,27 @@ export interface AhpMatrixResponse {
   status: string;
   criteria: string[];
   matrix: number[][];
+  tier?: Record<string, number>;
+  jejak_audit?: Array<{
+    pasangan: string;
+    tier_i: number;
+    tier_j: number;
+    beda_tier: number;
+    nilai_saaty: number;
+    label: string;
+    arah: string;
+  }>;
   ahp_result: {
     weights: Record<string, number>;
+    weights_fuzzy?: Record<string, number>;
+    tfn?: Record<string, [number, number, number]>;
     lambda_max: number;
     consistency_index: number;
     random_index: number;
     consistency_ratio: number;
     is_valid: boolean;
+    status_label?: string;
+    catatan_konsistensi?: string;
   };
 }
 
@@ -78,6 +113,8 @@ export interface DatasetSampleResponse {
   status: string;
   dataset_source: string;
   dataset_path: string;
+  dataset_format?: '7_kriteria' | 'legacy_4_kolom';
+  is_dummy_sintetis?: boolean;
   total_samples_returned: number;
   offset: number;
   limit: number;

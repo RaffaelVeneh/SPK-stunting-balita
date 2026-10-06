@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\DatasetService;
 use App\Services\SPK\AhpService;
+use App\Services\SPK\FuzzyAhpService;
+use App\Services\SPK\KriteriaDefinition;
 use App\Services\SPK\SpkEngine;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -13,70 +15,38 @@ class SpkController extends Controller
     public function __construct(
         protected SpkEngine $spkEngine,
         protected AhpService $ahpService,
+        protected FuzzyAhpService $fuzzyAhpService,
         protected DatasetService $datasetService
     ) {}
 
     /**
-     * Mengambil daftar 7 kriteria standar triase balita dan bobot defaultnya (Hasil AHP).
+     * Mengambil daftar 7 kriteria standar triase balita beserta bobotnya.
+     *
+     * Bobot TIDAK di-hardcode lagi. Sebelumnya angka bobot diketik manual di
+     * sini (0.3440, 0.0881, ...) sementara matriks AHP yang ditampilkan
+     * menghasilkan angka yang berbeda (0.3562, ...), sehingga sistem memakai
+     * bobot yang tidak sesuai dengan matriksnya sendiri. Sekarang bobot
+     * diturunkan dari KriteriaDefinition lewat Fuzzy AHP, jadi mustahil
+     * tidak sinkron.
      */
     public function criteria()
     {
-        $criteria = [
-            [
-                'code' => 'C1',
-                'name' => 'Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB)',
-                'weight' => 0.3440,
-                'type' => 'benefit',
-                'description' => 'Evaluasi antropometri stunting (TB/U z-score). 1=Optimal/Tinggi, 4=Stunted, 5=Severely Stunted.'
-            ],
-            [
-                'code' => 'C2',
-                'name' => 'Riwayat Kelahiran Berisiko (BBLR, Prematur)',
-                'weight' => 0.0881,
-                'type' => 'benefit',
-                'description' => 'Berat badan lahir dan usia gestasi saat lahir. 1=Cukup Bulan & BB Normal, 5=BBLSR (<1500g) / Prematur ekstrem.'
-            ],
-            [
-                'code' => 'C3',
-                'name' => 'Riwayat Penyakit / Infeksi (Diare, ISPA)',
-                'weight' => 0.2289,
-                'type' => 'benefit',
-                'description' => 'Frekuensi dan keparahan infeksi 6 bulan terakhir. 1=Tidak pernah sakit, 5=Infeksi kronis / TB Anak.'
-            ],
-            [
-                'code' => 'C4',
-                'name' => 'Kualitas Pola Pemberian Makan (ASI, MPASI)',
-                'weight' => 0.1466,
-                'type' => 'benefit',
-                'description' => 'Praktik pemberian ASI eksklusif 6 bulan dan kecukupan protein hewani MPASI. 1=ASI & MPASI adekuat, 5=Gagal makan parah.'
-            ],
-            [
-                'code' => 'C5',
-                'name' => 'Sanitasi & Akses Air Bersih',
-                'weight' => 0.0521,
-                'type' => 'benefit',
-                'description' => 'Ketersediaan jamban sehat dan sumber air minum keluarga. 1=Air perpipaan & jamban sendiri, 5=BABS / limbah terbuka.'
-            ],
-            [
-                'code' => 'C6',
-                'name' => 'Kerentanan Sosial-Ekonomi',
-                'weight' => 0.0881,
-                'type' => 'benefit',
-                'description' => 'Kondisi ekonomi keluarga dan daya beli pangan bergizi. 1=Mapan (>UMR), 5=Kemiskinan ekstrem.'
-            ],
-            [
-                'code' => 'C7',
-                'name' => 'Akses & Pemanfaatan Layanan Kesehatan',
-                'weight' => 0.0521,
-                'type' => 'benefit',
-                'description' => 'Keaktifan kunjungan Posyandu bulanan dan kelengkapan imunisasi dasar. 1=100% Rutin & Tuntas, 5=Drop out / Tidak pernah.'
-            ],
-        ];
+        $hasil = $this->fuzzyAhpService->hitungDefault();
 
         return response()->json([
             'status' => 'success',
-            'weighting_method' => 'AHP (Analytic Hierarchy Process)',
-            'criteria' => $criteria,
+            'weighting_method' => 'Fuzzy AHP (Buckley 1985) atas matriks perbandingan berpasangan pakar — CR 0,0079',
+            'criteria' => KriteriaDefinition::denganBobot($hasil['bobot_fuzzy']),
+            'bobot_crisp_pembanding' => $hasil['bobot_crisp'],
+            'consistency' => [
+                'lambda_max' => $hasil['lambda_max'],
+                'consistency_index' => $hasil['consistency_index'],
+                'random_index' => $hasil['random_index'],
+                'consistency_ratio' => $hasil['consistency_ratio'],
+                'is_valid' => $hasil['is_valid'],
+                'status_label' => $hasil['status_label'],
+                'catatan' => $hasil['catatan_konsistensi'],
+            ],
         ]);
     }
 
@@ -85,14 +55,29 @@ class SpkController extends Controller
      */
     public function ahpMatrix()
     {
-        $default = $this->ahpService->getDefaultAhpMatrix();
-        $calc = $this->ahpService->computeWeights($default['criteria'], $default['matrix']);
+        $kode = KriteriaDefinition::kode();
+        $matriks = KriteriaDefinition::matriksPasangan();
+        $hasil = $this->fuzzyAhpService->hitung($matriks, $kode);
 
         return response()->json([
             'status' => 'success',
-            'criteria' => $default['criteria'],
-            'matrix' => $default['matrix'],
-            'ahp_result' => $calc,
+            'criteria' => $kode,
+            'matrix' => $matriks,
+            'tier' => KriteriaDefinition::tier(),
+            'jejak_audit' => KriteriaDefinition::jejakAudit(),
+            'kriteria_detail' => KriteriaDefinition::KRITERIA,
+            'ahp_result' => [
+                'weights' => $hasil['bobot_crisp'],
+                'weights_fuzzy' => $hasil['bobot_fuzzy'],
+                'tfn' => $hasil['tfn'],
+                'lambda_max' => $hasil['lambda_max'],
+                'consistency_index' => $hasil['consistency_index'],
+                'random_index' => $hasil['random_index'],
+                'consistency_ratio' => $hasil['consistency_ratio'],
+                'is_valid' => $hasil['is_valid'],
+                'status_label' => $hasil['status_label'],
+                'catatan_konsistensi' => $hasil['catatan_konsistensi'],
+            ],
         ]);
     }
 
@@ -121,12 +106,15 @@ class SpkController extends Controller
     }
 
     /**
-     * Menjalankan kalkulasi SAW atau MOORA menggunakan bobot AHP (Toleran Data Parsial).
+     * Menjalankan kalkulasi MOORA menggunakan bobot AHP (toleran data parsial).
+     *
+     * Metode difiksasi ke MOORA. Parameter 'method' tetap diterima demi
+     * kompatibilitas, tetapi hanya 'moora' yang valid.
      */
     public function calculate(Request $request)
     {
         $request->validate([
-            'method' => ['required', 'string', 'in:saw,moora,SAW,MOORA'],
+            'method' => ['nullable', 'string', 'in:moora,MOORA'],
             'alternatives' => ['required', 'array', 'min:1'],
             'alternatives.*.id' => ['required'],
             'alternatives.*.name' => ['required', 'string'],
@@ -136,23 +124,37 @@ class SpkController extends Controller
             'criteria.*.weight' => ['required_with:criteria', 'numeric', 'min:0'],
         ]);
 
-        // Jika criteria tidak dikirim, gunakan criteria default AHP
-        $criteria = $request->input('criteria');
-        if (empty($criteria)) {
-            $defaultCriteriaData = $this->criteria()->getData(true);
-            $criteria = $defaultCriteriaData['criteria'];
-        }
+        // ================================================================
+        // BOBOT TERKUNCI — TIDAK DINAMIS.
+        //
+        // Kriteria dan bobot SELALU diambil dari hasil Fuzzy AHP yang
+        // diturunkan KriteriaDefinition. Apa pun yang dikirim klien pada field
+        // 'criteria' DIABAIKAN sepenuhnya.
+        //
+        // Sebelumnya klien boleh mengirim bobot sendiri, dan ketika kriteria
+        // dinonaktifkan di antarmuka bobotnya diredistribusi secara
+        // proporsional. Keduanya dihapus: bobot wajib berasal dari satu
+        // perhitungan AHP yang sah, bukan dari keadaan antarmuka pemakai.
+        // Field 'criteria' masih diterima demi kompatibilitas kontrak API,
+        // tetapi nilainya tidak lagi memengaruhi hasil.
+        // ================================================================
+        $criteria = KriteriaDefinition::denganBobot(
+            $this->fuzzyAhpService->hitungDefault()['bobot_fuzzy']
+        );
 
         try {
             $result = $this->spkEngine->calculate(
-                $request->method,
+                $request->input('method', 'moora'),
                 $request->alternatives,
                 $criteria
             );
 
             return response()->json([
                 'status' => 'success',
-                'weighting_method' => 'AHP (Dynamic Re-distribution)',
+                'weighting_method' => 'Fuzzy AHP (Buckley 1985) — bobot terkunci, tidak dinamis',
+                'scoring_method' => 'MOORA',
+                'priority_rule' => 'Aturan klinis absolut (bukan ambang relatif min-max)',
+                'weights_locked' => true,
                 'data' => $result,
             ]);
         } catch (InvalidArgumentException $e) {
@@ -168,7 +170,10 @@ class SpkController extends Controller
      */
     public function datasetSamples(Request $request)
     {
-        $limit = min(max((int) $request->query('limit', 20), 1), 100);
+        // Batas atas dinaikkan dari 100 menjadi 500 agar seluruh kohort dataset
+        // dummy (120 balita) dapat dimuat dalam satu tampilan. Batas lama 100
+        // membuat 20 balita tidak pernah bisa muncul bersama yang lain.
+        $limit = min(max((int) $request->query('limit', 20), 1), 500);
         $offset = max((int) $request->query('offset', 0), 0);
         $filter = $request->query('status', null);
         $includeC2C4 = filter_var($request->query('include_c2_c4', true), FILTER_VALIDATE_BOOLEAN);

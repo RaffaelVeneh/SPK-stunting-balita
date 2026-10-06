@@ -94,27 +94,24 @@ class AhpService
     }
 
     /**
-     * Matriks AHP referensi dari dokumen sistem (CR = 0.011 < 0.10).
+     * Matriks perbandingan berpasangan resmi sistem.
+     *
+     * Sebelumnya method ini mengembalikan matriks yang diketik manual, dan
+     * matriks tersebut TIDAK menghasilkan bobot yang dipakai sistem:
+     * matriksnya memberi C1 = 35,62% sedangkan perhitungan memakai C1 = 34,40%.
+     * Dokumentasi di dalamnya juga menyebut "CR = 0.011" yang merupakan milik
+     * matriks versi lama (sel C1-C5 dan C1-C7 bernilai 5, bukan 6).
+     *
+     * Sekarang matriksnya DITURUNKAN dari KriteriaDefinition, sehingga selalu
+     * sinkron dengan bobot yang dipakai. Angka bobotnya sendiri dihitung oleh
+     * FuzzyAhpService.
      */
     public function getDefaultAhpMatrix(): array
     {
-        $codes = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7'];
-        
-        // Nilai perbandingan berpasangan ahli gizi yang menghasilkan bobot resmi:
-        // C1 (34.40%), C3 (22.89%), C4 (14.66%), C2 (8.81%), C6 (8.81%), C5 (5.21%), C7 (5.21%)
-        $matrix = [
-            [1.0,     4.0,     2.0,     3.0,     6.0,     4.0,     6.0],     // C1 Gizi
-            [0.25,    1.0,     0.3333,  0.5,     2.0,     1.0,     2.0],     // C2 Lahir
-            [0.5,     3.0,     1.0,     2.0,     4.0,     3.0,     4.0],     // C3 Infeksi
-            [0.3333,  2.0,     0.5,     1.0,     3.0,     2.0,     3.0],     // C4 Makan
-            [0.1667,  0.5,     0.25,    0.3333,  1.0,     0.5,     1.0],     // C5 Sanitasi
-            [0.25,    1.0,     0.3333,  0.5,     2.0,     1.0,     2.0],     // C6 Ekonomi
-            [0.1667,  0.5,     0.25,    0.3333,  1.0,     0.5,     1.0],     // C7 Akses Layanan
-        ];
-
         return [
-            'criteria' => $codes,
-            'matrix' => $matrix,
+            'criteria' => KriteriaDefinition::kode(),
+            'matrix' => KriteriaDefinition::matriksPasangan(),
+            'tier' => KriteriaDefinition::tier(),
         ];
     }
 }

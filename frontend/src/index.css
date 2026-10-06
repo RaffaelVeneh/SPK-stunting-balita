@@ -1,11 +1,638 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   PAPAN BULANAN — sistem visual SPK Prioritas Intervensi Gizi Balita
+   ----------------------------------------------------------------------------
+   Dunia: papan tulis Posyandu hari penimbangan.
+   Dunia ini menyumbang EMPAT hal saja: tipe, palet, kepadatan, dan satu
+   signature move. Ia tidak menyuplai layout, navigasi, maupun kontrol —
+   semuanya tetap kontrol web standar.
+
+   Signature move: skala klinis 1-5 digambar sebagai GORESAN TALLY
+   (satu sampai lima garis, dikelompokkan lima), dan bobot AHP digambar
+   sebagai LEBAR KOLOM pada pita tujuh kriteria.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/Archivo-var.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Archivo Narrow';
+  src: url('/fonts/ArchivoNarrow-var.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-display: 'Archivo Narrow', 'Archivo', system-ui, sans-serif;
+
+  /* --- PAPAN: bidang yang menguasai seluruh region. Bukan aksen. --- */
+  --color-papan-900: #081a15;
+  --color-papan-800: #0c261e;
+  --color-papan-700: #12362c;
+  --color-papan-600: #1a4a3c;
+  --color-papan-500: #27624f;
+  --color-papan-400: #47816c;
+  --color-papan-300: #78a897;
+  --color-papan-200: #a9c9bd;
+
+  /* --- KAPUR: tinta di atas papan --- */
+  --color-kapur-50: #f7f5ee;
+  --color-kapur-100: #ece8da;
+  --color-kapur-200: #d8d2bd;
+  --color-kapur-300: #b8b199;
+
+  /* --- KERTAS: permukaan baca ---
+     Sengaja NETRAL-DINGIN, bukan krem hangat. Kertas catatan puskesmas dan
+     tabel statistik resmi memang putih netral; krem hangat adalah default
+     "rasa enak" yang muncul refleks di permukaan AI, bukan pilihan. */
+  --color-kertas-50: #f8f9f6;
+  --color-kertas-100: #eff1ec;
+  --color-kertas-200: #e2e6df;
+  --color-kertas-300: #ced4ca;
+  --color-kertas-400: #a9b0a5;
+
+  /* --- TINTA: huruf di atas kertas. Digelapkan agar lolos 4,5:1. --- */
+  --color-tinta-900: #101a16;
+  --color-tinta-700: #29352f;
+  --color-tinta-500: #46524b;
+  --color-tinta-400: #5d6a62;
+
+  /* --- PIGMEN KAPUR: hanya untuk pekerjaan nyata ---
+     Dipakai untuk pita risiko, keadaan terpilih, dan penanda aktif. */
+  --color-pigmen-merah: #c2455e;
+  --color-pigmen-kuning: #bd7f14;
+  --color-pigmen-sian: #35727e;
+  --color-pigmen-hijau: #37704f;
+
+  /* --------------------------------------------------------------------------
+     PEMETAAN ULANG SKALA LAMA.
+     Permukaan yang belum dibangun ulang memakai slate/blue/red/amber/emerald.
+     Skala itu dipetakan ke dunia papan supaya seluruh aplikasi berada di satu
+     dunia, bukan supaya tampilan lama dipertahankan.
+     ------------------------------------------------------------------------ */
+
+  --color-slate-50: #eff1ec;
+  --color-slate-100: #e2e6df;
+  --color-slate-200: #cfd5cb;
+  --color-slate-300: #b4bcb1;
+  --color-slate-400: #7d8880;
+  --color-slate-500: #5d6a62;
+  --color-slate-600: #46524b;
+  --color-slate-700: #333f39;
+  --color-slate-800: #29352f;
+  --color-slate-900: #101a16;
+  --color-slate-950: #08100c;
+
+  --color-blue-50: #eaf1ed;
+  --color-blue-100: #d3e3db;
+  --color-blue-200: #a9c9bd;
+  --color-blue-300: #78a897;
+  --color-blue-400: #47816c;
+  --color-blue-500: #27624f;
+  --color-blue-600: #1a4a3c;
+  --color-blue-700: #12362c;
+  --color-blue-800: #0c261e;
+  --color-blue-900: #081a15;
+
+  --color-red-50: #faecf0;
+  --color-red-100: #f3d3da;
+  --color-red-200: #e5a8b6;
+  --color-red-600: #c2455e;
+  --color-red-700: #a1364c;
+  --color-red-900: #6d2233;
+
+  --color-amber-50: #faf3e2;
+  --color-amber-100: #f4e4c2;
+  --color-amber-200: #e7cb8f;
+  --color-amber-600: #bd7f14;
+  --color-amber-700: #9a6710;
+  --color-amber-900: #63430a;
+
+  --color-orange-50: #faf0e6;
+  --color-orange-200: #e8c9a4;
+  --color-orange-700: #96601c;
+  --color-orange-900: #6b4413;
+
+  --color-emerald-50: #e9f2ec;
+  --color-emerald-100: #d0e5d8;
+  --color-emerald-200: #a6ccb5;
+  --color-emerald-600: #37704f;
+  --color-emerald-700: #2b5a3f;
+  --color-emerald-800: #22482f;
+  --color-emerald-900: #1a3724;
+
+  /* Garis rambut papan — kepadatan datang dari garis, bukan dari bayangan. */
+  --color-rambut: rgba(17, 28, 24, 0.14);
+  --color-rambut-papan: rgba(236, 232, 218, 0.18);
+}
+
+/* ============================================================================
+   DASAR
+   ========================================================================== */
+
 :root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--color-kertas-100);
+  color: var(--color-tinta-900);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'cv05' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Angka selalu tabular: ini alat baca angka, bukan halaman editorial. */
+.tnum,
+table,
+input,
+select {
+  font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* ============================================================================
+   PERMUKAAN PERAMBAN
+   Bagian yang tidak digambar tetap membawa desain. Ini sinyal termurah bahwa
+   halaman benar-benar dibangun, dan yang paling sering dilewatkan.
+   ========================================================================== */
+
+::selection {
+  background-color: var(--color-papan-700);
+  color: var(--color-kapur-50);
+}
+
+* {
+  caret-color: var(--color-papan-600);
+}
+
+/* Bilah gulir dari palet: hijau, persegi, tanpa tombol panah.
+   PENTING — `scrollbar-width` dan `scrollbar-color` sengaja TIDAK dipasang di
+   sini. Di Chrome modern keduanya mematikan seluruh aturan ::-webkit-scrollbar
+   sehingga gaya kustom tidak pernah terpakai; itulah sebabnya bilahnya sempat
+   tampil abu-abu bawaan. Fallback Firefox dipasang terpisah di bawah. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Hijau SEPANJANG WAKTU, bukan hanya saat hover. radius dipaksa 0, tanpa
+   border dan tanpa background-clip, sehingga batangnya mengisi penuh lebar
+   jalurnya. */
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-papan-600);
+  border: none;
+  border-radius: 0;
+  background-clip: border-box;
+  box-shadow: none;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-papan-700);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--color-papan-800);
+}
+
+/* Tanpa tombol panah di kedua ujung. Panah bawaan Windows disembunyikan dan
+   ruangnya dinolkan supaya tidak menyisakan celah. */
+::-webkit-scrollbar-button,
+::-webkit-scrollbar-button:single-button,
+::-webkit-scrollbar-button:double-button,
+::-webkit-scrollbar-button:vertical:start:decrement,
+::-webkit-scrollbar-button:vertical:end:increment,
+::-webkit-scrollbar-button:horizontal:start:decrement,
+::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox tidak mengenal ::-webkit-scrollbar, jadi hanya di sana kedua
+   properti standar ini dipakai. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-papan-500) transparent;
+  }
+}
+
+/* Cincin fokus: satu bahasa untuk seluruh aplikasi. */
+:focus-visible {
+  outline: 2px solid var(--color-papan-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Di atas papan, cincin fokus memakai kapur. */
+.papan :focus-visible,
+.papan:focus-visible {
+  outline-color: var(--color-kapur-100);
+}
+
+/* Reset kontrol diletakkan di dalam @layer base dengan sengaja.
+   Sebelumnya aturan ini tidak berlapis, sehingga `color: inherit` mengalahkan
+   utility Tailwind seperti `text-kapur-50` (utility ada di layer, dan aturan
+   tanpa layer selalu menang). Akibatnya tombol berlatar hijau tua mewarisi
+   tinta gelap dan kontrasnya jatuh ke 1,35:1. Di dalam base, utility kembali
+   menang seperti seharusnya. */
+@layer base {
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Daftar pilihan pada select digambar oleh sistem operasi, jadi diwarnai
+     eksplisit agar tidak pernah mewarisi tinta gelap di atas papan. */
+  option {
+    background-color: var(--color-kertas-50);
+    color: var(--color-tinta-900);
+  }
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-tinta-400);
+}
+
+/* Garis bawah tautan ikut palet, bukan biru bawaan. */
+a {
+  text-decoration-color: var(--color-papan-300);
+  text-underline-offset: 3px;
+}
+
+/* Kepala tabel yang lengket harus mengecat latarnya SENDIRI di tiap sel.
+   Dengan `border-collapse: collapse`, Chromium tidak mengecat latar <thead>
+   maupun <tr> di belakang sel, sehingga baris yang bergulir tembus pandang di
+   atas kepala tabel dan judul kolom tampak terpotong. Satu aturan di sini
+   menutup semua tabel lengket, bukan menambal tiap <th> satu per satu. */
+/* Yang dijadikan lengket adalah SEL-nya, bukan <thead>. Dengan
+   `border-collapse: collapse`, Chromium tidak menghormati <thead> sebagai
+   lapisan bertumpuk, sehingga baris yang bergulir mengecat DI ATAS kepala
+   tabel dan judul kolom tampak bertumpuk dengan isi baris. Memberi tiap sel
+   posisi lengket + z-index + latar sendiri adalah pola yang andal. */
+thead.sticky th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--color-kertas-100);
+  border-bottom: 1px solid var(--color-rambut);
+}
+
+/* Di layar lebar wadah tabel tidak lagi menjadi kontainer gulir, sehingga
+   kepala tabel menempel ke layar dan harus berhenti di bawah pita kepala
+   setinggi 56px, bukan di tepi atas jendela. */
+@media (min-width: 1024px) {
+  thead.sticky th {
+    top: 56px;
+  }
+}
+/* Nomor pada data tabular: lebar tetap supaya kolom tidak goyang. */
+table {
+  border-collapse: collapse;
+}
+
+/* ============================================================================
+   GORESAN TALLY — signature move
+   Satu sampai lima garis tegak. Yang kelima digambar sebagai garis miring
+   melintang empat garis sebelumnya: itulah goresan lima ala papan tally.
+   ========================================================================== */
+
+.tally {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 1em;
+  line-height: 0;
+}
+
+.tally__stroke {
+  width: 2px;
+  border-radius: 1px;
+  background-color: currentColor;
+  align-self: stretch;
+}
+
+/* Gerbang lima: satu garis miring menutup empat garis. */
+.tally__gate {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 1em;
+  margin-right: 1px;
+}
+
+.tally__gate::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: 50%;
+  height: 2px;
+  border-radius: 1px;
+  background-color: currentColor;
+  transform: rotate(-64deg);
+  transform-origin: center;
+}
+
+/* ============================================================================
+   GERAK
+   Satu momen yang dirancang, bukan efek bertaburan. Ease-out eksponensial
+   dari keadaan yang sudah terlihat.
+   ========================================================================== */
+
+@keyframes papan-masuk {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.masuk {
+  animation: papan-masuk 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.masuk--1 { animation-delay: 40ms; }
+.masuk--2 { animation-delay: 90ms; }
+.masuk--3 { animation-delay: 140ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   LAPISAN INTERAKSI — sentuhan akhir
+   Kursor digambar sebagai SVG dalam palet desain. Tiap bentuk diberi garis
+   kapur tipis di tepinya supaya tetap terbaca di atas papan gelap maupun
+   kertas terang, dan tiap kursor tetap menyertakan kata kunci bawaan sebagai
+   cadangan sehingga perilakunya tidak pernah hilang kalau SVG gagal dimuat.
+   ========================================================================== */
+
+:root {
+  --kursor-panah: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M5 3 L5 21 L9.8 16.2 L12.9 23 L15.9 21.6 L12.8 14.9 L19.6 14.9 Z' fill='%2312362c' stroke='%23f7f5ee' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 5 3, auto;
+  --kursor-tekan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M10 3.5a1.6 1.6 0 0 1 3.2 0V11h.9V8.8a1.5 1.5 0 0 1 3 0V11h.9V9.9a1.5 1.5 0 0 1 3 0V14c0 5-2.9 8-7.2 8-3.4 0-5.2-1.5-6.8-4.5L6.6 13a1.6 1.6 0 0 1 2.8-1.6L10 12.6Z' fill='%2312362c' stroke='%23f7f5ee' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 11 2, pointer;
+  --kursor-teks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 4 H17 M12 4 V20 M7 20 H17' stroke='%2312362c' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M7 4 H17 M12 4 V20 M7 20 H17' stroke='%23f7f5ee' stroke-width='4.2' stroke-linecap='round' fill='none' opacity='.55'/%3E%3C/svg%3E") 12 12, text;
+  --kursor-gulir: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect x='9' y='3' width='6' height='18' rx='3' fill='%2312362c' stroke='%23f7f5ee' stroke-width='1.4'/%3E%3Crect x='11.4' y='6' width='1.2' height='4' rx='.6' fill='%23f7f5ee'/%3E%3C/svg%3E") 12 12, ns-resize;
+}
+
+body {
+  cursor: var(--kursor-panah);
+}
+a,
+button,
+summary,
+select,
+[role='button'],
+[role='tab'],
+label[for] {
+  cursor: var(--kursor-tekan);
+}
+/* Kursor teks HANYA untuk bidang yang benar-benar bisa diketik. Angka tabular
+   di dalam tabel tidak bisa diedit, jadi memberi kursor I-beam di sana
+   menyesatkan. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+textarea,
+[contenteditable='true'] {
+  cursor: var(--kursor-teks);
+}
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'] {
+  cursor: var(--kursor-tekan);
+}
+button:disabled,
+[disabled],
+[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+/* Gagang gulir tetap memakai kursor bawaan: bentuknya sudah jelas dan
+   menggantinya justru menyulitkan saat menyeret. */
+
+/* Bilah gulir hanya didefinisikan SEKALI, di atas. Dulu ada blok kedua di
+   sini yang menimpanya dengan warna abu-abu, sudut bulat 999px, dan batang
+   yang menyempit karena border 3px + background-clip — itulah sebabnya
+   bilahnya tampak abu-abu dan hanya menghijau saat hover. Satu definisi saja. */
+
+
+/* --- Gerak --- */
+@keyframes masuk-naik {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes gores-tumbuh {
+  from {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+@keyframes pita-tumbuh {
+  from {
+    flex-grow: 0.0001;
+  }
+}
+@keyframes geser-masuk {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes tanda-tumbuh {
+  from {
+    opacity: 0;
+    transform: scaleY(0.1);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.anim {
+  animation-duration: 460ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  animation-delay: var(--tunda, 0ms);
+}
+.anim-masuk {
+  animation-name: masuk-naik;
+}
+.anim-geser {
+  animation-name: geser-masuk;
+}
+
+/* Baris tabel: masuk berjenjang, lalu goresannya tumbuh dari bawah.
+   Jeda dihitung dari --tunda yang dipasang di komponen, dan praktis
+   berhenti menambah setelah belasan baris supaya tidak terasa lambat. */
+tr.baris-masuk {
+  animation: masuk-naik 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--tunda, 0ms);
+}
+tr.baris-masuk .tally__stroke {
+  animation: gores-tumbuh 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: bottom;
+}
+tr.baris-masuk .tally__gate > .tally__stroke:nth-child(1) { animation-delay: calc(var(--tunda, 0ms) + 90ms); }
+tr.baris-masuk .tally__gate > .tally__stroke:nth-child(2) { animation-delay: calc(var(--tunda, 0ms) + 130ms); }
+tr.baris-masuk .tally__gate > .tally__stroke:nth-child(3) { animation-delay: calc(var(--tunda, 0ms) + 170ms); }
+tr.baris-masuk .tally__gate > .tally__stroke:nth-child(4) { animation-delay: calc(var(--tunda, 0ms) + 210ms); }
+tr.baris-masuk .tally__gate::after { animation: tanda-tumbuh 260ms cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--tunda, 0ms) + 250ms); }
+
+/* Baris: tanda di tepi kiri muncul saat ditunjuk, dan latar naik satu nada */
+tbody tr {
+  transition: background-color 140ms ease-out;
+}
+tbody tr:hover {
+  background-color: var(--color-kertas-100);
+}
+tbody tr .tanda-baris {
+  display: inline-block;
+  width: 3px;
+  height: 1.5em;
+  vertical-align: middle;
+  border-radius: 2px;
+  background-color: var(--color-papan-700);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+tbody tr:hover .tanda-baris,
+tbody tr:focus-within .tanda-baris {
+  transform: scaleY(1);
+}
+
+/* Pita bobot: tiap sel tumbuh ke lebarnya sendiri */
+.pita-sel {
+  animation: pita-tumbuh 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--tunda, 0ms);
+}
+
+/* Diagram: menunjuk satu simpul meredupkan yang lain, sehingga alurnya bisa
+   ditelusuri. Semua simpul diredupkan lebih dulu, lalu yang ditunjuk
+   dikembalikan penuh — inilah cara satu jalur menonjol tanpa menambah warna. */
+svg[role='img'] rect,
+svg[role='img'] polygon,
+svg[role='img'] path {
+  transition: stroke 160ms ease-out, stroke-width 160ms ease-out;
+}
+svg[role='img'] rect:hover,
+svg[role='img'] polygon:hover,
+svg[role='img'] path:hover {
+  stroke: var(--color-papan-500);
+  stroke-width: 2;
+}
+
+@keyframes garis-tumbuh {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.anim-garis {
+  animation: garis-tumbuh 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--tunda, 0ms);
+  transform-origin: left;
+}
+
+/* Tombol: sedikit terangkat, tanpa bayangan — hanya garis tepi yang menguat */
+.tombol-angkat {
+  transition:
+    background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 150ms ease-out,
+    transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tombol-angkat:hover {
+  transform: translateY(-1px);
+}
+.tombol-angkat:active {
+  transform: translateY(0);
+}
+
+/* Tautan seksi: penanda aktif tumbuh, bukan berkedip */
+.penanda-aktif {
+  animation: tanda-tumbuh 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim,
+  .anim-masuk,
+  .anim-geser,
+  .pita-sel,
+  tr.baris-masuk,
+  tr.baris-masuk .tally__stroke,
+  tr.baris-masuk .tally__gate::after,
+  .anim-garis,
+  .penanda-aktif {
+    animation: none !important;
+  }
+  .tombol-angkat:hover,
+  .tombol-angkat:active {
+    transform: none;
+  }
+  tbody tr .tanda-baris {
+    transition: none;
+  }
 }

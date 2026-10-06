@@ -1,4 +1,13 @@
-import type { User, Criterion, Alternative, CalculationResult, AhpMatrixResponse, DatasetSampleResponse } from '../types';
+import type {
+  User,
+  Criterion,
+  Alternative,
+  CalculationResult,
+  AhpMatrixResponse,
+  DatasetSampleResponse,
+  PriorityLevel,
+  RankingItem,
+} from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -82,14 +91,18 @@ export const api = {
       // offline fallback
     }
 
+    // Cadangan offline. Angka ini HARUS sama dengan hasil Fuzzy AHP di backend;
+    // sebelumnya di sini masih tertulis bobot lama (0.3440, 0.0881, ...) yang
+    // tidak sesuai dengan matriks maupun dengan hasil perhitungan server.
+    // Sumber kebenarannya adalah analisis/bobot_final.json.
     return [
-      { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U)', weight: 0.3440, type: 'benefit' },
-      { code: 'C2', name: 'Riwayat Kelahiran Berisiko (BBLR/Prematur)', weight: 0.0881, type: 'benefit' },
-      { code: 'C3', name: 'Riwayat Penyakit / Infeksi', weight: 0.2289, type: 'benefit' },
-      { code: 'C4', name: 'Kualitas Pola Pemberian Makan (ASI/MPASI)', weight: 0.1466, type: 'benefit' },
-      { code: 'C5', name: 'Sanitasi & Akses Air Bersih', weight: 0.0521, type: 'benefit' },
-      { code: 'C6', name: 'Kerentanan Sosial-Ekonomi', weight: 0.0881, type: 'benefit' },
-      { code: 'C7', name: 'Akses Layanan Kesehatan (Posyandu)', weight: 0.0521, type: 'benefit' },
+      { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U)', weight: 0.29961, type: 'benefit', tier: 1, jalur: 'Langsung' },
+      { code: 'C2', name: 'Riwayat Kelahiran Berisiko (BBLR/Prematur)', weight: 0.29961, type: 'benefit', tier: 1, jalur: 'Langsung' },
+      { code: 'C3', name: 'Riwayat Penyakit / Infeksi', weight: 0.138974, type: 'benefit', tier: 2, jalur: 'Langsung' },
+      { code: 'C4', name: 'Kualitas Pola Pemberian Makan (ASI/MPASI)', weight: 0.138974, type: 'benefit', tier: 2, jalur: 'Langsung' },
+      { code: 'C5', name: 'Sanitasi & Akses Air Bersih', weight: 0.066954, type: 'benefit', tier: 3, jalur: 'Tidak langsung' },
+      { code: 'C6', name: 'Kerentanan Sosial-Ekonomi', weight: 0.035488, type: 'benefit', tier: 4, jalur: 'Tidak langsung' },
+      { code: 'C7', name: 'Akses Layanan Kesehatan (Posyandu)', weight: 0.020391, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
     ];
   },
 
@@ -147,7 +160,6 @@ export const api = {
   },
 
   async calculate(
-    method: 'saw' | 'moora',
     alternatives: Alternative[],
     criteria: Criterion[]
   ): Promise<CalculationResult> {
@@ -159,7 +171,7 @@ export const api = {
           Accept: 'application/json',
           ...(this.getToken() ? { Authorization: `Bearer ${this.getToken()}` } : {}),
         },
-        body: JSON.stringify({ method, alternatives, criteria }),
+        body: JSON.stringify({ method: 'moora', alternatives, criteria }),
       });
 
       if (res.ok) {
@@ -170,104 +182,127 @@ export const api = {
       // Fallback kalkulasi lokal di client
     }
 
-    return localCalculate(method, alternatives, criteria);
+    return localCalculate(alternatives, criteria);
   },
 };
 
 /**
- * Kalkulasi lokal client-side dengan dukungan Resiliensi Data Parsial (Tahan Banting)
+ * Tingkat prioritas dari PROFIL KLINIS ABSOLUT anak.
+ *
+ * Menggantikan ambang relatif min-max yang dipakai sebelumnya. Ambang relatif
+ * selalu memaksa ada minimal satu balita "Sangat Tinggi" dan satu "Rendah" di
+ * setiap kohort, sekalipun seluruh kohortnya sehat. Skala ordinal 1-5 bersifat
+ * absolut, sehingga tingkat seorang anak tidak boleh berubah hanya karena anak
+ * lain di batch yang sama kebetulan lebih sehat atau lebih sakit.
+ *
+ * Fungsi ini harus menghasilkan aturan yang IDENTIK dengan
+ * MooraService::tentukanTingkatKlinis() di backend.
+ */
+function tentukanTingkatKlinis(
+  nilai: Record<string, number>,
+  kelengkapan: number
+): { tingkat: PriorityLevel; dasar: string; nTinggi: number; perluVerifikasi: boolean } {
+  const URUTAN: PriorityLevel[] = ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi'];
+  const naikKe = (t: PriorityLevel, minimal: PriorityLevel): PriorityLevel =>
+    URUTAN.indexOf(t) >= URUTAN.indexOf(minimal) ? t : minimal;
+
+  const c1 = typeof nilai.C1 === 'number' ? nilai.C1 : null;
+  const lain = Object.entries(nilai)
+    .filter(([kode]) => kode !== 'C1')
+    .map(([, v]) => v);
+  const nTinggi = lain.filter((v) => v >= 4).length;
+  const nSedang = lain.filter((v) => Math.abs(v - 3) < 1e-9).length;
+
+  let tingkat: PriorityLevel;
+  let dasar: string;
+
+  if (c1 === null) {
+    tingkat = 'Sedang';
+    dasar = 'C1 tidak terukur; tingkat ditahan di Sedang';
+  } else if (c1 >= 5) {
+    tingkat = 'Sangat Tinggi';
+    dasar = 'C1 = 5 (severely stunted, atau stunted dengan tren tumbuh memburuk) -> rujuk segera';
+  } else if (c1 >= 4 && nTinggi >= 2) {
+    tingkat = 'Sangat Tinggi';
+    dasar = `C1 = 4 dengan ${nTinggi} kriteria risiko tinggi lain (risiko kumulatif)`;
+  } else if (c1 >= 4) {
+    tingkat = 'Tinggi';
+    dasar = 'C1 = 4 (stunted)';
+  } else if (nTinggi >= 3) {
+    tingkat = 'Tinggi';
+    dasar = `C1 = ${c1} tetapi ${nTinggi} kriteria risiko tinggi lain`;
+  } else if (c1 >= 3) {
+    tingkat = 'Sedang';
+    dasar = 'C1 = 3 (waspada KMS)';
+  } else if (nTinggi >= 2) {
+    tingkat = 'Sedang';
+    dasar = `C1 = ${c1} dengan ${nTinggi} kriteria risiko tinggi lain`;
+  } else if (nSedang >= 3) {
+    tingkat = 'Sedang';
+    dasar = `${nSedang} kriteria berisiko sedang`;
+  } else {
+    tingkat = 'Rendah';
+    dasar = 'Seluruh kriteria pada tingkat risiko rendah';
+  }
+
+  // Data yang belum lengkap tidak boleh menurunkan tingkat secara sepihak
+  let perluVerifikasi = false;
+  if (kelengkapan < 5) {
+    perluVerifikasi = true;
+    if (c1 !== null) {
+      const minimal = c1 >= 5 ? 'Sangat Tinggi' : c1 >= 4 ? 'Tinggi' : c1 >= 3 ? 'Sedang' : null;
+      if (minimal) {
+        const baru = naikKe(tingkat, minimal);
+        if (baru !== tingkat) {
+          tingkat = baru;
+          dasar += ' | DINAIKKAN karena data belum lengkap';
+        }
+      }
+    }
+  }
+
+  return { tingkat, dasar, nTinggi, perluVerifikasi };
+}
+
+/**
+ * Kalkulasi lokal client-side, dipakai hanya bila API tidak dapat dihubungi.
+ *
+ * Implementasi ini harus mencerminkan MooraService (backend) supaya hasil
+ * fallback tidak berbeda dari hasil server. Perbedaan yang pernah ada dan
+ * sudah diperbaiki di sini:
+ *   - SAW dihapus; sistem hanya memakai MOORA.
+ *   - Nilai kosong TIDAK lagi diimputasi 1.0. Sebelumnya "tidak diketahui"
+ *     diperlakukan sebagai "tidak berisiko", yang berbahaya untuk alat triase.
+ *   - Tingkat prioritas memakai aturan klinis absolut, bukan ambang min-max.
  */
 function localCalculate(
-  method: 'saw' | 'moora',
   alternatives: Alternative[],
   criteria: Criterion[]
 ): CalculationResult {
-  const activeCriteria = criteria.filter((c) => c.active !== false);
-  const totalWeight = activeCriteria.reduce((sum, c) => sum + c.weight, 0);
-
-  // Redistribusi bobot proporsional agar sum = 1.0
-  const normalizedCriteria = activeCriteria.map((c) => ({
-    ...c,
-    weight: totalWeight > 0 ? c.weight / totalWeight : 1 / activeCriteria.length,
-  }));
+  // ================================================================
+  // BOBOT TERKUNCI — TIDAK DINAMIS.
+  //
+  // Seluruh kriteria dipakai dengan bobot AHP APA ADANYA. Penyaringan
+  // kriteria "aktif" dan redistribusi bobot proporsional sudah dihapus,
+  // karena keduanya membuat angka yang dipakai menghitung bukan lagi bobot
+  // hasil AHP melainkan bobot turunan yang berbeda untuk tiap balita.
+  // Harus mencerminkan MooraService.php di backend.
+  // ================================================================
+  const normalizedCriteria = criteria;
 
   const normMatrix: Record<string, Record<string, number>> = {};
   const weightMatrix: Record<string, Record<string, number>> = {};
   let hasPartial = false;
 
-  if (method === 'saw') {
-    const maxVals: Record<string, number> = {};
-    for (const c of normalizedCriteria) {
-      const vals = alternatives.map((a) => (typeof a.values[c.code] === 'number' ? a.values[c.code] : 1.0));
-      maxVals[c.code] = Math.max(...vals, 1.0);
-    }
-
-    const scores = alternatives.map((alt) => {
-      normMatrix[alt.id] = {};
-      weightMatrix[alt.id] = {};
-      let total = 0;
-      let filled = 0;
-      const missing: string[] = [];
-
-      for (const c of normalizedCriteria) {
-        const hasVal = typeof alt.values[c.code] === 'number';
-        const val = hasVal ? alt.values[c.code] : 1.0;
-        if (hasVal) {
-          filled++;
-        } else {
-          missing.push(c.code);
-        }
-
-        const max = maxVals[c.code] || 1;
-        const r = val / max;
-        const v = r * c.weight;
-        normMatrix[alt.id][c.code] = Number(r.toFixed(4));
-        weightMatrix[alt.id][c.code] = Number(v.toFixed(4));
-        total += v;
-      }
-
-      const isPart = missing.length > 0 || normalizedCriteria.length < 7;
-      if (isPart) hasPartial = true;
-
-      return {
-        id: alt.id,
-        name: alt.name,
-        score: Number(total.toFixed(4)),
-        is_partial: isPart,
-        completeness_ratio: `${filled}/${normalizedCriteria.length}`,
-        missing_criteria: missing,
-        raw_attributes: alt.raw_attributes,
-      };
-    });
-
-    scores.sort((a, b) => b.score - a.score);
-
-    return {
-      method: 'saw',
-      is_partial_dataset: hasPartial,
-      active_criteria: normalizedCriteria.map((c) => c.code),
-      criteria_count: normalizedCriteria.length,
-      rankings: scores.map((s, idx) => ({
-        id: s.id,
-        name: s.name,
-        score: s.score,
-        rank: idx + 1,
-        priority_level: s.score >= 0.8 ? 'Sangat Tinggi' : s.score >= 0.6 ? 'Tinggi' : s.score >= 0.4 ? 'Sedang' : 'Rendah',
-        is_partial: s.is_partial,
-        completeness_ratio: s.completeness_ratio,
-        missing_criteria: s.missing_criteria,
-        raw_attributes: s.raw_attributes,
-      })),
-      normalized_matrix: normMatrix,
-      weighted_matrix: weightMatrix,
-    };
-  } else {
-    // MOORA
+  {
+    // MOORA: r_ij = x_ij / akar(sum_i x_ij^2)
+    // Pembagi dihitung HANYA dari nilai yang ada; ini urusan normalisasi,
+    // bukan pembobotan, jadi tidak melanggar aturan bobot terkunci.
     const denoms: Record<string, number> = {};
     for (const c of normalizedCriteria) {
       const sumSq = alternatives.reduce((sum, a) => {
-        const val = typeof a.values[c.code] === 'number' ? a.values[c.code] : 1.0;
-        return sum + Math.pow(val, 2);
+        const v = a.values[c.code];
+        return typeof v === 'number' ? sum + v * v : sum;
       }, 0);
       denoms[c.code] = Math.sqrt(sumSq) || 1;
     }
@@ -278,25 +313,30 @@ function localCalculate(
       let benSum = 0;
       let filled = 0;
       const missing: string[] = [];
+      const nilaiOrdinal: Record<string, number> = {};
 
       for (const c of normalizedCriteria) {
-        const hasVal = typeof alt.values[c.code] === 'number';
-        const val = hasVal ? alt.values[c.code] : 1.0;
-        if (hasVal) {
-          filled++;
-        } else {
+        const v = alt.values[c.code];
+        if (typeof v !== 'number') {
           missing.push(c.code);
+          continue;
         }
+        filled++;
+        nilaiOrdinal[c.code] = v;
 
-        const r = val / denoms[c.code];
-        const v = r * c.weight;
+        // Bobot AHP apa adanya. TIDAK diredistribusi ke kriteria yang tersedia.
+        const wEff = c.weight;
+        const r = v / denoms[c.code];
+        const vv = r * wEff;
         normMatrix[alt.id][c.code] = Number(r.toFixed(4));
-        weightMatrix[alt.id][c.code] = Number(v.toFixed(4));
-        benSum += v;
+        weightMatrix[alt.id][c.code] = Number(vv.toFixed(4));
+        benSum += vv;
       }
 
       const isPart = missing.length > 0 || normalizedCriteria.length < 7;
       if (isPart) hasPartial = true;
+
+      const klinis = tentukanTingkatKlinis(nilaiOrdinal, filled);
 
       return {
         id: alt.id,
@@ -306,35 +346,57 @@ function localCalculate(
         completeness_ratio: `${filled}/${normalizedCriteria.length}`,
         missing_criteria: missing,
         raw_attributes: alt.raw_attributes,
+        priority_level: klinis.tingkat,
+        perlu_verifikasi: klinis.perluVerifikasi,
+        tingkat_dasar: klinis.dasar,
+        n_kriteria_tinggi: klinis.nTinggi,
+        nilai_ordinal: nilaiOrdinal,
       };
     });
 
-    const allS = scores.map((s) => s.score);
-    const minS = Math.min(...allS);
-    const maxS = Math.max(...allS);
-
     scores.sort((a, b) => b.score - a.score);
+
+    // Perangkingan dengan penanganan SERI yang benar
+    const rankings: RankingItem[] = [];
+    let rankSebelumnya = 0;
+    let skorSebelumnya: number | null = null;
+    scores.forEach((s, idx) => {
+      let rank: number;
+      if (skorSebelumnya !== null && Math.abs(s.score - skorSebelumnya) < 1e-9) {
+        rank = rankSebelumnya;
+      } else {
+        rank = idx + 1;
+        rankSebelumnya = rank;
+        skorSebelumnya = s.score;
+      }
+      rankings.push({
+        id: s.id,
+        name: s.name,
+        score: s.score,
+        rank,
+        priority_level: s.priority_level,
+        is_partial: s.is_partial,
+        completeness_ratio: s.completeness_ratio,
+        missing_criteria: s.missing_criteria,
+        raw_attributes: s.raw_attributes,
+        perlu_verifikasi: s.perlu_verifikasi,
+        details: {
+          method: 'MOORA',
+          benefit_score: s.score,
+          cost_score: 0,
+          tingkat_dasar: s.tingkat_dasar,
+          n_kriteria_tinggi: s.n_kriteria_tinggi,
+          nilai_ordinal: s.nilai_ordinal,
+        },
+      });
+    });
 
     return {
       method: 'moora',
       is_partial_dataset: hasPartial,
       active_criteria: normalizedCriteria.map((c) => c.code),
       criteria_count: normalizedCriteria.length,
-      rankings: scores.map((s, idx) => {
-        const rel = maxS > minS ? (s.score - minS) / (maxS - minS) : 0.5;
-        const level = rel >= 0.75 ? 'Sangat Tinggi' : rel >= 0.5 ? 'Tinggi' : rel >= 0.25 ? 'Sedang' : 'Rendah';
-        return {
-          id: s.id,
-          name: s.name,
-          score: s.score,
-          rank: idx + 1,
-          priority_level: level,
-          is_partial: s.is_partial,
-          completeness_ratio: s.completeness_ratio,
-          missing_criteria: s.missing_criteria,
-          raw_attributes: s.raw_attributes,
-        };
-      }),
+      rankings,
       normalized_matrix: normMatrix,
       weighted_matrix: weightMatrix,
     };

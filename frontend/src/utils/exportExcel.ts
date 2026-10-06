@@ -86,9 +86,9 @@ export const SPK_WORKFLOW_STEPS = [
   { tahap: 2, proses: 'Menentukan Himpunan Linguistik (Sub-Kriteria)', desc: 'Menentukan 5 kategori derajat risiko untuk setiap kriteria: Sangat Rendah (1), Rendah (2), Sedang (3), Tinggi (4), Sangat Tinggi (5).', rumus: 'Skala Ordinal 1 s/d 5 (Benefit terhadap Urgensi Intervensi)' },
   { tahap: 3, proses: 'Menentukan Domain & Fungsi Keanggotaan', desc: 'Menetapkan batas domain kurva Segitiga (titik puncak) dan Trapesium (rentang saturasi), dengan batas beririsan (overlap) agar stabil.', rumus: 'Kurva Trapesium [a, b, c, d] dan Kurva Segitiga [a, b, c]' },
   { tahap: 4, proses: 'Penerjemahan Sub-Kriteria (Fuzzifikasi)', desc: 'Mengonversi data observasi riil balita ke dalam nilai tegas skala ordinal 1–5 berdasarkan interval sub-kriteria.', rumus: 'Input x_ij in {1, 2, 3, 4, 5}' },
-  { tahap: 5, proses: 'Pembobotan Prioritas AHP', desc: 'Menyusun matriks perbandingan berpasangan Saaty (7x7), menghitung bobot prioritas kriteria (w_j), dan menguji rasio konsistensi.', rumus: 'a_ij = 1/a_ji, w_j = sum(n_ij)/n, CR = CI/RI < 0.10' },
-  { tahap: 6, proses: 'Normalisasi Matriks (SAW / MOORA)', desc: 'Menghitung matriks ternormalisasi (R) sesuai metode yang aktif (SAW: benefit x_ij / max(x_j); MOORA: rasio x_ij / sqrt(sum(x^2))).', rumus: 'R = [r_ij]' },
-  { tahap: 7, proses: 'Perhitungan Nilai Akhir & Triase Prioritas', desc: 'Mengalikan nilai normalisasi dengan bobot AHP (V = R * W), perangkingan descending, dan menetapkan tindakan klinis.', rumus: 'SAW: V_i = sum(w_j * r_ij); MOORA: y_i = sum(w_j * r_ij). Rank 1 = Prioritas Paling Mendesak' },
+  { tahap: 5, proses: 'Pembobotan Prioritas Fuzzy AHP', desc: 'Matriks perbandingan berpasangan Saaty 7x7 adalah MASUKAN: penilaian pakar gizi pada skala 1-9, ditulis tetap sebagai data. Bobot dihitung dengan Fuzzy AHP (Buckley 1985) atas matriks itu, lalu diuji rasio konsistensinya. Urutan tingkat kepentingan kriteria adalah KELUARAN dari perhitungan ini, bukan penyebabnya.', rumus: 'n_ij = a_ij / sum_i(a_ij); TFN(v-1, v, v+1); w = (l + 4m + u)/6; CR = CI/RI < 0.10' },
+  { tahap: 6, proses: 'Normalisasi Matriks (MOORA)', desc: 'Menghitung matriks ternormalisasi (R). Pembagi dihitung hanya dari nilai yang tersedia, sehingga anak dengan data parsial tidak dirugikan oleh nilai yang tidak diketahui.', rumus: 'r_ij = x_ij / sqrt(sum_i x_ij^2)' },
+  { tahap: 7, proses: 'Skor Akhir, Perangkingan, dan Triase Klinis', desc: 'Skor akhir menentukan URUTAN, sedangkan TINGKAT prioritas ditentukan oleh aturan klinis absolut dari profil anak itu sendiri, bukan dari posisinya di dalam kohort.', rumus: 'y_i = sum(w_j * r_ij); tingkat = aturan klinis (C1 dan jumlah kriteria risiko tinggi). Rank 1 = paling mendesak' },
 ];
 
 export function exportSpkToExcel({
@@ -96,16 +96,15 @@ export function exportSpkToExcel({
   criteria,
   balitas,
   ahpData,
-  method,
 }: {
   result: CalculationResult;
   criteria: Criterion[];
   balitas: Alternative[];
   ahpData: AhpMatrixResponse | null;
-  method: 'saw' | 'moora';
 }) {
   const wb = XLSX.utils.book_new();
-  const activeCriteria = criteria.filter((c) => c.active !== false);
+  // Bobot terkunci: seluruh kriteria dipakai, tidak ada penyaringan "aktif".
+  const activeCriteria = criteria;
   const activeCodes = activeCriteria.map((c) => c.code);
 
   // ==========================================
@@ -114,7 +113,7 @@ export function exportSpkToExcel({
   const sheet1Data: (string | number | null)[][] = [];
 
   sheet1Data.push(['SISTEM PENDUKUNG KEPUTUSAN PENETAPAN PRIORITAS INTERVENSI STUNTING BALITA']);
-  sheet1Data.push([`Metode: ${method.toUpperCase()} | Pembobotan: AHP (Analytic Hierarchy Process)`]);
+  sheet1Data.push([`Metode: MOORA (Ratio System) | Pembobotan: Fuzzy AHP (Buckley 1985)`]);
   sheet1Data.push([`Tanggal Export: ${new Date().toLocaleDateString('id-ID')} | Total Balita: ${result.rankings.length}`]);
   sheet1Data.push([]);
 
@@ -178,33 +177,43 @@ export function exportSpkToExcel({
   XLSX.utils.book_append_sheet(wb, ws1, 'Hasil Triase & Ranking');
 
   // ==========================================
-  // SHEET 2: PERHITUNGAN METODE (SAW / MOORA)
+  // SHEET 2: PERHITUNGAN METODE (MOORA)
   // ==========================================
   const sheet2Data: (string | number | null)[][] = [];
 
-  sheet2Data.push([`LANGKAH PERHITUNGAN METODE ${method.toUpperCase()} (RINCIAN KETAT)`]);
+  sheet2Data.push([`LANGKAH PERHITUNGAN METODE MOORA (RINCIAN KETAT)`]);
   sheet2Data.push(['1. Matriks Keputusan Awal (X)']);
   sheet2Data.push(['Kode Balita', ...activeCodes]);
 
   for (const b of balitas) {
     const r: (string | number | null)[] = [b.id];
     for (const c of activeCodes) {
-      r.push(typeof b.values[c] === 'number' ? b.values[c] : 1.0);
+      // Nilai kosong TIDAK diimputasi. Sebelumnya diisi 1.0, padahal skala 1
+      // berarti risiko terendah, sehingga "tidak diketahui" diperlakukan
+      // sebagai "tidak berisiko".
+      r.push(typeof b.values[c] === 'number' ? b.values[c] : '');
     }
     sheet2Data.push(r);
   }
 
   sheet2Data.push([]);
-  sheet2Data.push(['2. Bobot Kriteria Ternormalisasi (W) dan Tipe']);
-  const sumW = activeCriteria.reduce((s, c) => s + c.weight, 0);
+  sheet2Data.push(['2. Bobot Kriteria (TERKUNCI — hasil Fuzzy AHP) dan Tipe']);
   sheet2Data.push(['Atribut', ...activeCodes]);
   sheet2Data.push(['Nama Kriteria', ...activeCriteria.map((c) => c.name)]);
-  sheet2Data.push(['Bobot Asli AHP', ...activeCriteria.map((c) => c.weight)]);
-  sheet2Data.push(['Bobot Efektif (Re-distribusi)', ...activeCriteria.map((c) => Number((c.weight / sumW).toFixed(4)))]);
+  sheet2Data.push(['Bobot AHP (terkunci)', ...activeCriteria.map((c) => c.weight)]);
+  sheet2Data.push(['Tingkat Kepentingan', ...activeCriteria.map((c) => (c.tier ? `Tier ${c.tier}` : '—'))]);
+  sheet2Data.push(['Jalur Sebab Akibat', ...activeCriteria.map((c) => c.jalur ?? '—')]);
   sheet2Data.push(['Tipe Kriteria', ...activeCriteria.map((c) => c.type.toUpperCase())]);
+  sheet2Data.push([]);
+  sheet2Data.push([
+    'CATATAN: bobot di atas terkunci pada hasil Fuzzy AHP dan TIDAK diredistribusi.',
+    'Kriteria yang belum terisi dikeluarkan dari penjumlahan, sehingga balita berdata',
+    'kurang memperoleh skor lebih rendah. Tingkat prioritas diambil dari aturan klinis',
+    'absolut, bukan dari skor.',
+  ]);
 
   sheet2Data.push([]);
-  sheet2Data.push([`3. Matriks Ternormalisasi (R) - ${method === 'saw' ? 'Rumus: r_ij = x_ij / max(x_j)' : 'Rumus: r_ij = x_ij / sqrt(sum(x^2))'}`]);
+  sheet2Data.push([`3. Matriks Ternormalisasi (R) - Rumus: r_ij = x_ij / sqrt(sum_i x_ij^2)`]);
   sheet2Data.push(['Kode Balita', ...activeCodes]);
 
   for (const b of balitas) {
@@ -217,7 +226,7 @@ export function exportSpkToExcel({
   }
 
   sheet2Data.push([]);
-  sheet2Data.push([`4. Matriks Terbobot (V) & Skor Akhir - ${method === 'saw' ? 'V_i = sum(w_j * r_ij)' : 'y_i = sum(w_j * r_ij)'}`]);
+  sheet2Data.push([`4. Matriks Terbobot (V) & Skor Akhir - y_i = sum(w_j * r_ij)`]);
   sheet2Data.push(['Kode Balita', ...activeCodes, 'Total Skor', 'Peringkat']);
 
   for (const item of result.rankings) {
@@ -232,7 +241,7 @@ export function exportSpkToExcel({
   }
 
   const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
-  XLSX.utils.book_append_sheet(wb, ws2, `Perhitungan ${method.toUpperCase()}`);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Perhitungan MOORA');
 
   // ==========================================
   // SHEET 3: PEMBOBOTAN AHP
@@ -272,7 +281,7 @@ export function exportSpkToExcel({
   // ==========================================
   const sheet4Data: (string | number | null)[][] = [];
 
-  sheet4Data.push(['TAHAPAN ALUR PROSES SPK (KOMBINASI FUZZY SUB-KRITERIA + AHP + SAW/MOORA)']);
+  sheet4Data.push(['TAHAPAN ALUR PROSES SPK (KOMBINASI FUZZY SUB-KRITERIA + FUZZY AHP + MOORA)']);
   sheet4Data.push([]);
   sheet4Data.push(['Tahap', 'Proses', 'Yang Dilakukan', 'Rumus / Referensi']);
   for (const step of SPK_WORKFLOW_STEPS) {
@@ -314,6 +323,6 @@ export function exportSpkToExcel({
 
   // Trigger browser download
   const dateStr = new Date().toISOString().slice(0, 10);
-  const fileName = `SPK_Stunting_Triase_${method.toUpperCase()}_${dateStr}.xlsx`;
+  const fileName = `SPK_Stunting_Triase_MOORA_${dateStr}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }

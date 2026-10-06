@@ -66,7 +66,7 @@ return new class extends Migration
             $table->string('metode_bobot')->default('manual'); // varchar (ahp, manual, critic, dll)
             $table->boolean('is_active')->default(false);
             $table->text('deskripsi')->nullable();
-            $table->json('weights_json'); // {C1: 0.3440, C2: 0.0881, ...}
+            $table->json('weights_json'); // hasil Fuzzy AHP, mis. {C1: 0.29961, C2: 0.29961, ...}
             $table->unsignedBigInteger('ahp_matrix_id')->nullable();
             $table->timestamps();
         });
@@ -99,7 +99,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('batch_id')->constrained('kalkulasi_batch')->cascadeOnDelete();
             $table->foreignId('balita_id')->constrained('balita')->cascadeOnDelete();
-            $table->string('metode_skoring'); // varchar (saw, moora, topsis)
+            $table->string('metode_skoring'); // varchar (moora)
             $table->decimal('skor', 10, 4);
             $table->unsignedInteger('rank');
             $table->string('priority_level'); // Sangat Tinggi, Tinggi, Sedang, Rendah

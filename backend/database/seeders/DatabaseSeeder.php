@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Services\SPK\FuzzyAhpService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -74,22 +75,31 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 4. Versi Bobot Default (AHP / Manual dari Dokumen)
+        // 4. Versi Bobot Default
+        //
+        // Bobot TIDAK lagi diketik manual di sini. Sebelumnya seeder menuliskan
+        // angka lama (0.3440, 0.0881, ...) yang tidak sesuai dengan matriks AHP
+        // yang ditampilkan aplikasi. Sekarang bobotnya diturunkan dari
+        // KriteriaDefinition lewat FuzzyAhpService, sehingga selalu sinkron.
+        $hasilAhp = (new FuzzyAhpService())->hitungDefault();
+
+        // Nonaktifkan SEMUA versi lain lebih dulu. Tanpa ini, baris lama
+        // (v1.0-Default-7Kriteria) akan tetap is_active = true dan tabelnya
+        // berisi dua versi yang sama-sama aktif, sehingga menyesatkan kalau
+        // diperiksa lewat phpMyAdmin.
+        DB::table('bobot_kriteria_versi')
+            ->where('versi', '!=', 'v2.0-FuzzyAHP-7Kriteria')
+            ->update(['is_active' => false, 'updated_at' => now()]);
+
         DB::table('bobot_kriteria_versi')->updateOrInsert(
-            ['versi' => 'v1.0-Default-7Kriteria'],
+            ['versi' => 'v2.0-FuzzyAHP-7Kriteria'],
             [
-                'metode_bobot' => 'ahp',
+                'metode_bobot' => 'fuzzy_ahp',
                 'is_active' => true,
-                'deskripsi' => 'Bobot 7 kriteria triase balita berbasis preferensi ahli gizi',
-                'weights_json' => json_encode([
-                    'C1' => 0.3440,
-                    'C2' => 0.0881,
-                    'C3' => 0.2289,
-                    'C4' => 0.1466,
-                    'C5' => 0.0521,
-                    'C6' => 0.0881,
-                    'C7' => 0.0521,
-                ]),
+                'deskripsi' => 'Bobot 7 kriteria dari Fuzzy AHP (Buckley 1985); struktur tier '
+                    . 'diturunkan dari Perpres 72/2021 Pasal 1 dan bukti literatur. '
+                    . 'CR = ' . $hasilAhp['consistency_ratio'],
+                'weights_json' => json_encode($hasilAhp['bobot_fuzzy']),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
