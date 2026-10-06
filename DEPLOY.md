@@ -269,10 +269,13 @@ masih punya ruang sebanyak itu sebelum menyalakannya:
 free -h
 ```
 
-Kalau phpMyAdmin tidak diperlukan di VPS, matikan saja untuk menghemat memori:
+phpMyAdmin **tidak ikut berjalan secara bawaan** — ia berada di balik profil
+`alat`, karena di produksi ia tidak diperlukan dan hanya memakan memori, satu
+slot port, dan satu image yang harus ditarik dari Docker Hub. Kalau memang
+perlu, jalankan dengan:
 
 ```bash
-docker compose stop phpmyadmin
+docker compose --profile alat up -d
 ```
 ## Memperbarui aplikasi
 

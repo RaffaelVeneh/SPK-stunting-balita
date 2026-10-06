@@ -24,7 +24,15 @@ services:
       retries: 5
 
   # phpMyAdmin Web UI
+  #
+  # Dijalankan HANYA bila diminta lewat profil, karena di produksi ia tidak
+  # diperlukan: ia hanya memakan memori, satu slot port, dan satu image yang
+  # harus ditarik. Untuk memakainya:
+  #
+  #     docker compose --profile alat up -d
+  #
   phpmyadmin:
+    profiles: ["alat"]
     image: ${PMA_IMAGE:-phpmyadmin/phpmyadmin:latest}
     container_name: spk-stunting-phpmyadmin
     mem_limit: 192m
