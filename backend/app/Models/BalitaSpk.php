@@ -42,6 +42,9 @@ class BalitaSpk extends Model
             'name' => $this->nama,
             'aktif' => (bool) $this->aktif,
             'sumber' => $this->sumber,
+            // Dipakai antarmuka untuk menampilkan kapan data terakhir diubah.
+            'diperbarui_pada' => $this->updated_at?->toIso8601String(),
+            'dibuat_pada' => $this->created_at?->toIso8601String(),
             'values' => [
                 'C1' => $this->c1, 'C2' => $this->c2, 'C3' => $this->c3,
                 'C4' => $this->c4, 'C5' => $this->c5, 'C6' => $this->c6,

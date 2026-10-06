@@ -69,7 +69,9 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [ahp, setAhp] = useState<AhpMatrixResponse | null>(null);
 
-  const [limit, setLimit] = useState(120);
+  // Penyaring jumlah dihapus karena sudah ada pagination. Seluruh data tetap
+  // dimuat sekaligus (dibatasi 500, batas atas API), lalu dipotong per halaman.
+  const limit = 500;
   const [filter, setFilter] = useState('all');
   const [cari, setCari] = useState('');
 
@@ -98,6 +100,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   // memblokir seluruh halaman sampai ditekan, sehingga satu permintaan gagal
   // bisa membuat antarmuka tampak macet.
   const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const [diperbarui, setDiperbarui] = useState<Record<string, string | null>>({});
 
   const muatStatus = useCallback(async () => {
     try {
@@ -107,6 +110,11 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
         peta[b.id] = b.aktif !== false;
       });
       setStatusAktif(peta);
+      const waktu: Record<string, string | null> = {};
+      r.data.forEach((b) => {
+        waktu[b.id] = b.diperbarui_pada ?? null;
+      });
+      setDiperbarui(waktu);
     } catch {
       // Daftar tetap tampil walau status gagal dimuat.
     }
@@ -333,20 +341,33 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
 
       {/* Kendali: standar web, bukan kostum dunia. */}
       <div className="flex flex-wrap items-end gap-3 border-b border-rambut bg-kertas-50 px-4 py-3 sm:px-6">
+        {/* Pagination menggantikan penyaring jumlah balita: dengan halaman,
+            mengatur berapa baris dimuat sudah tidak diperlukan lagi. */}
         <div>
-          <label htmlFor="f-sampel" className="block text-xs font-bold uppercase tracking-wider text-tinta-400">
-            Jumlah balita
-          </label>
-          <select
-            id="f-sampel"
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
-            className="mt-1 rounded border border-rambut bg-kertas-100 px-2 py-1.5 text-xs font-semibold text-tinta-900"
-          >
-            <option value={20}>20 balita</option>
-            <option value={50}>50 balita</option>
-            <option value={120}>120 balita (seluruh kohort)</option>
-          </select>
+          <span className="block text-xs font-bold uppercase tracking-wider text-tinta-400">
+            Halaman
+          </span>
+          <div className="mt-1 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setHalaman((h) => Math.max(1, h - 1))}
+              disabled={halamanAman <= 1}
+              className="rounded border border-rambut bg-kertas-100 px-2 py-1.5 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200 disabled:text-tinta-400"
+            >
+              Sebelumnya
+            </button>
+            <span className="tnum px-1 text-xs font-bold text-tinta-900">
+              {halamanAman} / {totalHalaman}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHalaman((h) => Math.min(totalHalaman, h + 1))}
+              disabled={halamanAman >= totalHalaman}
+              className="rounded border border-rambut bg-kertas-100 px-2 py-1.5 text-xs font-bold text-tinta-700 transition-colors hover:bg-kertas-200 disabled:text-tinta-400"
+            >
+              Berikutnya
+            </button>
+          </div>
         </div>
 
         <div>
@@ -801,6 +822,19 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
               })}
             </div>
 
+            <div className="border-t border-rambut px-5 py-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-tinta-400">
+                Terakhir diubah
+              </p>
+              <p className="tnum mt-1 text-xs text-tinta-700">
+                {diperbarui[rincian.id]
+                  ? new Date(diperbarui[rincian.id] as string).toLocaleString('id-ID', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })
+                  : 'Belum pernah diubah sejak dimuat sistem'}
+              </p>
+            </div>
             <div className="border-t border-rambut px-5 py-4">
               <p className="text-xs font-bold uppercase tracking-wider text-tinta-400">
                 Tindakan

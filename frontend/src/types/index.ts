@@ -42,6 +42,8 @@ export interface Alternative {
   /** Nonaktif berarti keluar dari perhitungan tetapi tetap tampil di daftar. */
   aktif?: boolean;
   sumber?: string;
+  /** Waktu perubahan terakhir, dari sistem. */
+  diperbarui_pada?: string | null;
 }
 
 export interface RankingItem {

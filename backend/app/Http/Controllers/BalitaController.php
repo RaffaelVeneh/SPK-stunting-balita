@@ -32,16 +32,29 @@ class BalitaController extends Controller
             // masuk dan merusak seluruh perhitungan di bawahnya.
             $aturan["c{$i}"] = ['required', 'integer', 'min:1', 'max:5'];
         }
-        if ($baru) {
-            $aturan['kode'] = [
-                'required', 'string', 'max:20',
-                'regex:/^[A-Za-z0-9\-]+$/',
-                'unique:balita_spk,kode',
-            ];
-        }
+        // 'kode' sengaja TIDAK diterima dari klien. Kode dibuat sistem supaya
+        // penomoran selalu rapi dan tidak bisa bertabrakan karena salah ketik.
         return $aturan;
     }
 
+    /**
+     * Kode balita berikutnya, dibuat sistem.
+     *
+     * Dicari dengan membaca kode yang ada lalu mengambil nomor terbesar, bukan
+     * memakai MAX() di SQL, karena SUBSTRING berbeda antara MySQL dan SQLite
+     * dan lingkungan uji memakai SQLite.
+     */
+    private function kodeBerikutnya(): string
+    {
+        $maks = 0;
+        foreach (BalitaSpk::where('kode', 'like', 'BAL-%')->pluck('kode') as $kode) {
+            if (preg_match('/^BAL-(\d+)$/', (string) $kode, $cocok)) {
+                $maks = max($maks, (int) $cocok[1]);
+            }
+        }
+
+        return sprintf('BAL-%04d', $maks + 1);
+    }
     public function index(): JsonResponse
     {
         $semua = BalitaSpk::orderBy('kode')->get();
@@ -58,6 +71,7 @@ class BalitaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate($this->aturan(true));
+        $data['kode'] = $this->kodeBerikutnya();
         $data['sumber'] = 'manual';
         $data['aktif'] = true;
 

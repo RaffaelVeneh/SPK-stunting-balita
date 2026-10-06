@@ -94,12 +94,10 @@ export const FormBalita: React.FC<Props> = ({ mode, awal, criteria, onTutup, onS
   const simpan = async () => {
     setGalat(null);
     if (!nilai.nama.trim()) return setGalat('Nama tidak boleh kosong.');
-    if (mode === 'tambah' && !/^[A-Za-z0-9-]{2,20}$/.test(nilai.kode.trim())) {
-      return setGalat('Kode wajib 2-20 karakter, hanya huruf, angka, dan tanda hubung.');
-    }
+
     setMenyimpan(true);
     try {
-      await onSimpan(mode === 'tambah' ? { ...nilai, kode: nilai.kode.trim().toUpperCase() } : nilai);
+      await onSimpan(nilai);
     } catch (e) {
       setGalat(e instanceof Error ? e.message : 'Data gagal disimpan.');
     } finally {
@@ -146,16 +144,12 @@ export const FormBalita: React.FC<Props> = ({ mode, awal, criteria, onTutup, onS
 
         {/* --- Identitas --- */}
         <div className="grid grid-cols-2 gap-3 border-b border-rambut px-5 py-4 sm:grid-cols-4">
-          <label className="block">
+          <div className="block">
             <span className={kelasLabel}>Kode</span>
-            <input
-              className={`${kelasInput} mt-1 disabled:bg-kertas-200 disabled:text-tinta-500`}
-              value={nilai.kode}
-              disabled={mode === 'edit'}
-              onChange={(e) => ubah('kode', e.target.value)}
-              placeholder="BAL-0121"
-            />
-          </label>
+            <p className="mt-1 flex h-[30px] items-center rounded border border-dashed border-rambut bg-kertas-200 px-2.5 text-xs font-bold text-tinta-500">
+              {mode === 'edit' ? nilai.kode : 'Dibuat otomatis'}
+            </p>
+          </div>
           <label className="col-span-1 block sm:col-span-2">
             <span className={kelasLabel}>Nama (boleh disamarkan)</span>
             <input className={`${kelasInput} mt-1`} value={nilai.nama} onChange={(e) => ubah('nama', e.target.value)} />
