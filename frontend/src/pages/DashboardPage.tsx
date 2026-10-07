@@ -14,6 +14,7 @@ import { MethodologyGuide } from '../components/MethodologyGuide';
 import { ProofPanel } from '../components/ProofPanel';
 import { KriteriaDetail } from '../components/KriteriaDetail';
 import { FormBalita } from '../components/FormBalita';
+import { susunCSV, unduhCSV } from '../utils/ekspor';
 import {
   GoresanKelengkapan,
   PenandaTingkat,
@@ -301,6 +302,57 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     });
   }, [baris, urut, balitas]);
 
+  /**
+   * Ekspor CSV dari daftar yang SEDANG tampil setelah disaring dan disortir —
+   * bukan hanya halaman yang terlihat. Yang diunduh adalah seluruh hasil
+   * penyaringan, karena itulah yang diharapkan orang ketika menekan Ekspor.
+   *
+   * Balita nonaktif ikut bila penyaringnya memuat mereka. Kolom Status
+   * membedakannya, dan kolom Peringkat dibiarkan kosong untuk mereka karena
+   * peringkat resmi hanya berlaku bagi balita aktif. Posisi mereka dari
+   * perhitungan rujukan ditaruh di kolom terpisah supaya tidak tertukar dengan
+   * peringkat resmi.
+   */
+  const eksporCSV = () => {
+    const peta = new Map(balitas.map((b) => [b.id, b]));
+
+    const kolom = [
+      'Peringkat resmi', 'Kode', 'Nama', 'Usia (bulan)', 'Jenis kelamin',
+      'Tinggi (cm)', 'HAZ', 'Status gizi', 'Tren memburuk',
+      'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7',
+      'Skor MOORA', 'Tingkat prioritas', 'Tindakan', 'Status',
+      'Peringkat bila diaktifkan',
+    ];
+
+    const isi = barisTampil.map((r) => {
+      const b = peta.get(r.id);
+      const v = (b?.values ?? {}) as Record<string, number>;
+      const ra = (b?.raw_attributes ?? {}) as Record<string, unknown>;
+      const nonaktif = r.aktif === false;
+
+      return [
+        nonaktif ? '' : r.rank,
+        r.id,
+        r.name,
+        ra.umur_bulan as number,
+        ra.jenis_kelamin as string,
+        ra.tinggi_badan_cm as number,
+        ra.haz as number,
+        ra.status_gizi as string,
+        ra.tren_memburuk ? 'Ya' : 'Tidak',
+        v.C1, v.C2, v.C3, v.C4, v.C5, v.C6, v.C7,
+        Number(r.score).toFixed(6),
+        nonaktif ? 'Nonaktif' : r.priority_level,
+        nonaktif ? 'Tidak ikut perhitungan' : (r.tindakan ?? ''),
+        nonaktif ? 'Nonaktif' : 'Aktif',
+        nonaktif ? r.rank : '',
+      ];
+    });
+
+    const tanggal = new Date().toISOString().slice(0, 10);
+    unduhCSV(`spk-stunting-prioritas-${tanggal}.csv`, susunCSV(kolom, isi));
+  };
+
   const totalHalaman = Math.max(1, Math.ceil(barisTampil.length / PER_HALAMAN));
   const halamanAman = Math.min(halaman, totalHalaman);
   const barisHalaman = barisTampil.slice(
@@ -471,6 +523,13 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
             </button>
           </p>
         )}
+        <button
+          type="button"
+          onClick={eksporCSV}
+          className="rounded border border-rambut px-3 py-1.5 text-xs font-bold text-papan-700 transition-colors hover:bg-papan-700 hover:text-kapur-50"
+        >
+          Ekspor CSV
+        </button>
         <button
           type="button"
           onClick={() => setForm({ mode: 'tambah' })}
