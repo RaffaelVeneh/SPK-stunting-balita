@@ -73,6 +73,11 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   // dimuat sekaligus (dibatasi 500, batas atas API), lalu dipotong per halaman.
   const limit = 500;
   const [filter, setFilter] = useState('all');
+
+  // Penyaring status keaktifan. Bawaannya "semua" supaya tidak ada baris yang
+  // tersembunyi tanpa disadari — penyaring yang menyembunyikan data sejak awal
+  // membuat orang mengira datanya hilang.
+  const [filterAktif, setFilterAktif] = useState<'semua' | 'aktif' | 'nonaktif'>('semua');
   const [cari, setCari] = useState('');
 
   // Goresan tally atau angka mentah. Angka berguna saat pengguna perlu membaca
@@ -173,13 +178,20 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   );
 
   const baris = useMemo(() => {
-    const semua = result?.rankings ?? [];
+    let semua = result?.rankings ?? [];
+
+    if (filterAktif !== 'semua') {
+      semua = semua.filter((r) =>
+        filterAktif === 'aktif' ? r.aktif !== false : r.aktif === false,
+      );
+    }
+
     if (!cari.trim()) return semua;
     const q = cari.trim().toLowerCase();
     return semua.filter(
       (r) => r.id.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)
     );
-  }, [result, cari]);
+  }, [result, cari, filterAktif]);
 
   /* ------------------------------------------------------------------ */
   /* SEKSI BUKTI                                                        */
@@ -378,6 +390,22 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
             <option value="stunted">Stunted</option>
             <option value="normal">Normal</option>
             <option value="tinggi">Tinggi</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="f-aktif" className="block text-xs font-bold uppercase tracking-wider text-tinta-400">
+            Status data
+          </label>
+          <select
+            id="f-aktif"
+            value={filterAktif}
+            onChange={(e) => setFilterAktif(e.target.value as 'semua' | 'aktif' | 'nonaktif')}
+            className="mt-1 rounded border border-rambut bg-kertas-100 px-2 py-1.5 text-xs font-semibold text-tinta-900"
+          >
+            <option value="semua">Semua</option>
+            <option value="aktif">Aktif saja</option>
+            <option value="nonaktif">Nonaktif saja</option>
           </select>
         </div>
 
