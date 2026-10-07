@@ -114,48 +114,30 @@ class SpkController extends Controller
      * kompatibilitas, tetapi hanya 'moora' yang valid.
      */
     /**
-     * Tandai balita berstatus nonaktif pada hasil peringkat.
+     * Kode balita yang berstatus nonaktif di antara alternatif yang dikirim.
      *
-     * Balita nonaktif TIDAK dibuang dari hasil. Ia tetap diperingkat supaya
-     * posisinya terlihat: pengguna perlu tahu ke urutan berapa ia kembali kalau
-     * diaktifkan lagi. Yang berubah hanya penandanya, dan antarmuka memakai
-     * penanda itu untuk meredupkan barisnya, menuliskan "Nonaktif" pada kolom
-     * Tingkat, dan mengganti tombolnya menjadi Aktifkan.
-     *
-     * Konsekuensinya, peringkat balita aktif bisa bergeser ketika ada yang
-     * dinonaktifkan. Itu memang diinginkan: daftar prioritas tetap berurutan
-     * tanpa lubang.
-     *
-     * @param  array<int, array<string, mixed>>  $rankings
-     * @return array<int, array<string, mixed>>
+     * @param  array<int, array<string, mixed>>  $alternatives
+     * @return array<int, string>
      */
-    private function tandaiNonaktif(array $rankings): array
+    private function kodeNonaktif(array $alternatives): array
     {
         if (! Schema::hasTable('balita_spk')) {
-            return $rankings;
+            return [];
         }
 
         $kode = array_values(array_filter(array_map(
-            fn ($r) => is_array($r) ? ($r['id'] ?? null) : null,
-            $rankings
+            fn ($a) => is_array($a) ? ($a['id'] ?? null) : null,
+            $alternatives
         )));
 
         if ($kode === []) {
-            return $rankings;
+            return [];
         }
 
-        $nonaktif = BalitaSpk::whereIn('kode', $kode)
+        return BalitaSpk::whereIn('kode', $kode)
             ->where('aktif', false)
             ->pluck('kode')
             ->all();
-
-        return array_map(function ($r) use ($nonaktif) {
-            if (is_array($r)) {
-                $r['aktif'] = ! in_array($r['id'] ?? null, $nonaktif, true);
-            }
-
-            return $r;
-        }, $rankings);
     }
 
     public function calculate(Request $request)
@@ -196,13 +178,66 @@ class SpkController extends Controller
         );
 
         try {
+            $semua = $request->alternatives ?? [];
+            $nonaktif = $this->kodeNonaktif($semua);
+
+            // ============================================================
+            // DUA PERHITUNGAN.
+            //
+            // MOORA menormalkan tiap kriteria dengan membaginya dengan akar
+            // jumlah kuadrat seluruh alternatif. Penyebut itu bergantung pada
+            // himpunan yang ikut dihitung, sehingga mengeluarkan satu balita
+            // menggeser skor SEMUA balita lain — terukur sekitar 1,45% pada
+            // kohort ini. Karena itu himpunan perhitungan harus dinyatakan
+            // tegas, dan di sini dinyatakan sebagai berikut:
+            //
+            //   1. Perhitungan RESMI memakai HANYA balita aktif. Inilah hasil
+            //      yang dipakai triase.
+            //   2. Perhitungan KEDUA memakai seluruh balita. Hasilnya TIDAK
+            //      dipakai untuk triase; ia hanya menjawab "kalau balita ini
+            //      diaktifkan lagi, ia ada di urutan berapa".
+            //
+            // Tingkat prioritas tidak terpengaruh, karena ia datang dari
+            // aturan klinis absolut atas C1-C7, bukan dari peringkat.
+            // ============================================================
+            $aktif = array_values(array_filter(
+                $semua,
+                fn ($a) => ! in_array(is_array($a) ? ($a['id'] ?? null) : null, $nonaktif, true)
+            ));
+
             $result = $this->spkEngine->calculate(
                 $request->input('method', 'moora'),
-                $request->alternatives ?? [],
+                $aktif,
                 $criteria
             );
 
-            $result['rankings'] = $this->tandaiNonaktif($result['rankings'] ?? []);
+            $result['rankings'] = array_map(
+                fn ($r) => is_array($r) ? $r + ['aktif' => true] : $r,
+                $result['rankings'] ?? []
+            );
+
+            $posisiNonaktif = [];
+            if ($nonaktif !== []) {
+                $referensi = $this->spkEngine->calculate(
+                    $request->input('method', 'moora'),
+                    $semua,
+                    $criteria
+                );
+
+                foreach ($referensi['rankings'] ?? [] as $r) {
+                    if (in_array($r['id'] ?? null, $nonaktif, true)) {
+                        $posisiNonaktif[] = [
+                            'id' => $r['id'],
+                            'name' => $r['name'] ?? null,
+                            'score' => $r['score'] ?? null,
+                            'rank' => $r['rank'] ?? null,
+                            'priority_level' => $r['priority_level'] ?? null,
+                            'tindakan' => $r['tindakan'] ?? null,
+                            'aktif' => false,
+                        ];
+                    }
+                }
+            }
 
             return response()->json([
                 'status' => 'success',
@@ -210,7 +245,11 @@ class SpkController extends Controller
                 'scoring_method' => 'MOORA',
                 'priority_rule' => 'Aturan klinis absolut (bukan ambang relatif min-max)',
                 'weights_locked' => true,
+                'calculation_set' => 'Balita AKTIF saja. Balita nonaktif dikeluarkan dari '
+                    . 'perhitungan resmi; posisinya disediakan terpisah dari perhitungan '
+                    . 'kedua atas seluruh balita.',
                 'data' => $result,
+                'nonaktif' => $posisiNonaktif ?? [],
             ]);
         } catch (InvalidArgumentException $e) {
             return response()->json([
