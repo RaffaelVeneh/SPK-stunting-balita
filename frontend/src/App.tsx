@@ -3,6 +3,7 @@ import { api } from './services/api';
 import type { User } from './types';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage, type Seksi } from './pages/DashboardPage';
+import type { PilihanEkspor } from './types';
 import { LogOut, ShieldCheck, ClipboardList, Sigma, BookOpen, Download } from 'lucide-react';
 
 /**
@@ -25,7 +26,12 @@ const SEKSI: {
 export function App() {
   const [user, setUser] = useState<User | null>(() => api.getUser());
   const [seksi, setSeksi] = useState<Seksi>('triase');
-  const [aksiEkspor, setAksiEkspor] = useState<(() => void) | null>(null);
+  // Menu ekspor dari seksi yang sedang aktif. Berupa ARRAY, bukan fungsi — dan
+  // itu menghilangkan satu jebakan: setState memperlakukan argumen berupa fungsi
+  // sebagai updater lalu memanggilnya, sehingga handler tidak pernah tersimpan
+  // dan tombolnya tidak muncul. Array tidak diperlakukan begitu.
+  const [menuEkspor, setMenuEkspor] = useState<PilihanEkspor[] | null>(null);
+  const [eksporTerbuka, setEksporTerbuka] = useState(false);
 
   useEffect(() => {
     const savedUser = api.getUser();
@@ -160,22 +166,66 @@ export function App() {
               <span className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-kapur-300 sm:inline">
                 Fuzzy AHP &rarr; MOORA
               </span>
-              {aksiEkspor && (
-                <button
-                  type="button"
-                  onClick={aksiEkspor}
-                  className="inline-flex items-center gap-1.5 rounded border border-rambut-papan bg-papan-600 px-3 py-1.5 text-xs font-bold text-kapur-50 transition-colors hover:bg-papan-500"
-                >
-                  <Download className="h-3.5 w-3.5" strokeWidth={2} />
-                  Ekspor
-                </button>
+              {menuEkspor && menuEkspor.length > 0 && (
+                <div className="relative">
+                  {eksporTerbuka && (
+                    <div className="fixed inset-0 z-40" onClick={() => setEksporTerbuka(false)} />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEksporTerbuka((t) => !t)}
+                    aria-expanded={eksporTerbuka}
+                    aria-haspopup="menu"
+                    className="relative z-50 inline-flex items-center gap-1.5 rounded border border-rambut-papan bg-papan-600 px-3 py-1.5 text-xs font-bold text-kapur-50 transition-colors hover:bg-papan-500"
+                  >
+                    <Download className="h-3.5 w-3.5" strokeWidth={2} />
+                    Ekspor
+                    <svg
+                      width="9"
+                      height="6"
+                      viewBox="0 0 9 6"
+                      aria-hidden
+                      className={`transition-transform ${eksporTerbuka ? 'rotate-180' : ''}`}
+                    >
+                      <path d="M1 1 L4.5 4.5 L8 1" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    </svg>
+                  </button>
+
+                  {eksporTerbuka && (
+                    <div
+                      role="menu"
+                      aria-label="Pilih format ekspor"
+                      className="absolute right-0 z-50 mt-1.5 w-[300px] border border-rambut bg-kertas-50"
+                    >
+                      {menuEkspor.map((p, i) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setEksporTerbuka(false);
+                            p.jalankan();
+                          }}
+                          className={`block w-full px-3.5 py-2.5 text-left transition-colors hover:bg-kertas-200 ${
+                            i > 0 ? 'border-t border-rambut' : ''
+                          }`}
+                        >
+                          <span className="block text-xs font-bold text-tinta-900">{p.label}</span>
+                          <span className="mt-0.5 block text-[11px] leading-snug text-tinta-500">
+                            {p.ket}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
         </header>
 
         <main className="min-w-0 flex-1">
-          <DashboardPage user={user} seksi={seksi} onSiapEkspor={setAksiEkspor} />
+          <DashboardPage user={user} seksi={seksi} onSiapEkspor={setMenuEkspor} />
         </main>
       </div>
     </div>

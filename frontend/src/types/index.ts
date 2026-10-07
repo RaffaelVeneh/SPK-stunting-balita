@@ -1,3 +1,9 @@
+export type PilihanEkspor = {
+  label: string;
+  ket: string;
+  jalankan: () => void;
+};
+
 export type PriorityLevel = 'Sangat Tinggi' | 'Tinggi' | 'Sedang' | 'Rendah';
 
 export interface User {

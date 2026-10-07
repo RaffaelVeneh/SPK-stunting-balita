@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import type {
+  PilihanEkspor,
   AhpMatrixResponse,
   Alternative,
   CalculationResult,
@@ -61,7 +62,7 @@ export type Seksi = 'triase' | 'bukti' | 'panduan';
 interface Props {
   user: User;
   seksi: Seksi;
-  onSiapEkspor: (fn: (() => void) | null) => void;
+  onSiapEkspor: (pilihan: PilihanEkspor[] | null) => void;
 }
 
 export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
@@ -165,13 +166,6 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     exportSpkToExcel({ result, criteria, balitas, ahpData: ahp });
   }, [result, criteria, balitas, ahp]);
 
-  useEffect(() => {
-    if (seksi !== 'triase' || !result || !result.rankings.length) {
-      onSiapEkspor(null);
-      return;
-    }
-    onSiapEkspor(() => jalankanEkspor);
-  }, [seksi, result, jalankanEkspor, onSiapEkspor]);
 
   const maks = useMemo(
     () => Math.max(0, ...(result?.rankings.map((r) => r.score) ?? [0])),
@@ -313,7 +307,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
    * perhitungan rujukan ditaruh di kolom terpisah supaya tidak tertukar dengan
    * peringkat resmi.
    */
-  const eksporCSV = () => {
+  const eksporCSV = useCallback(() => {
     const peta = new Map(balitas.map((b) => [b.id, b]));
 
     const kolom = [
@@ -351,7 +345,30 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
 
     const tanggal = new Date().toISOString().slice(0, 10);
     unduhCSV(`spk-stunting-prioritas-${tanggal}.csv`, susunCSV(kolom, isi));
-  };
+  }, [balitas, barisTampil]);
+  // Diletakkan SETELAH eksporCSV karena ia memakainya, dan masih SEBELUM
+  // return awal mana pun sesuai aturan hook. Menaruhnya di atas akan memakai
+  // eksporCSV sebelum dideklarasikan.
+  useEffect(() => {
+    if (seksi !== 'triase' || !result || !result.rankings.length) {
+      onSiapEkspor(null);
+      return;
+    }
+
+    onSiapEkspor([
+      {
+        label: 'Excel (.xlsx)',
+        ket: 'Empat lembar: hasil triase, perhitungan MOORA, pembobotan AHP, dan tahapan fuzzy.',
+        jalankan: jalankanEkspor,
+      },
+      {
+        label: 'CSV (.csv)',
+        ket: 'Satu tabel datar berisi daftar yang sedang tampil setelah disaring dan disortir.',
+        jalankan: eksporCSV,
+      },
+    ]);
+  }, [seksi, result, jalankanEkspor, eksporCSV, onSiapEkspor]);
+
 
   const totalHalaman = Math.max(1, Math.ceil(barisTampil.length / PER_HALAMAN));
   const halamanAman = Math.min(halaman, totalHalaman);
@@ -523,13 +540,6 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
             </button>
           </p>
         )}
-        <button
-          type="button"
-          onClick={eksporCSV}
-          className="rounded border border-rambut px-3 py-1.5 text-xs font-bold text-papan-700 transition-colors hover:bg-papan-700 hover:text-kapur-50"
-        >
-          Ekspor CSV
-        </button>
         <button
           type="button"
           onClick={() => setForm({ mode: 'tambah' })}
