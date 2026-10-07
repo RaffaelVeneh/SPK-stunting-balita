@@ -269,13 +269,69 @@ masih punya ruang sebanyak itu sebelum menyalakannya:
 free -h
 ```
 
-phpMyAdmin **tidak ikut berjalan secara bawaan** — ia berada di balik profil
-`alat`, karena di produksi ia tidak diperlukan dan hanya memakan memori, satu
-slot port, dan satu image yang harus ditarik dari Docker Hub. Kalau memang
-perlu, jalankan dengan:
+## phpMyAdmin lewat terowongan SSH
+
+phpMyAdmin **tidak ikut berjalan secara bawaan**, dan yang lebih penting: **ia
+tidak pernah terbuka ke internet.** Portnya diikat ke `127.0.0.1`, sehingga hanya
+bisa dijangkau dari dalam VPS itu sendiri.
+
+Artinya Anda tidak perlu DBeaver, IntelliJ, atau aplikasi pihak ketiga apa pun
+yang setup-nya ribet. Cukup peramban, lewat terowongan SSH.
+
+### Di VPS
 
 ```bash
-docker compose --profile alat up -d
+docker compose --profile alat up -d phpmyadmin
+```
+
+Pastikan ia benar-benar hanya mendengarkan di localhost:
+
+```bash
+sudo ss -tlnp | grep 8082
+```
+
+Yang benar tertulis `127.0.0.1:8082`. Kalau tertulis `0.0.0.0:8082`, hentikan
+dan jangan lanjut — itu berarti ia terbuka ke internet.
+
+### Di komputer Anda
+
+```bash
+ssh -L 8082:127.0.0.1:8082 uvmsegara@segara.slemankab.go.id
+```
+
+Biarkan jendela itu tetap terbuka, lalu buka di peramban:
+
+```
+http://localhost:8082
+```
+
+### Kenapa ini aman
+
+Port 8082 hanya ada **di dalam** VPS. Terowongan SSH memunculkan port itu di
+komputer Anda seolah-olah lokal, dan seluruh lalu lintasnya melewati koneksi SSH
+yang sudah terenkripsi. Tidak ada satu pun port baru yang terbuka ke internet,
+dan tidak ada yang perlu diubah di firewall.
+
+### Satu hal yang WAJIB Anda sadari
+
+phpMyAdmin di stack ini **masuk otomatis** memakai kredensial dari `.env`
+(`PMA_USER` dan `PMA_PASSWORD`). Artinya siapa pun yang berhasil menjangkau
+`http://localhost:8082` lewat terowongan Anda **sudah dalam keadaan masuk** —
+tidak ada layar login yang menghadang.
+
+Karena itu:
+
+- **Jangan pernah** membuka port ini ke publik
+- **Jangan** membagikan terowongannya, dan jangan tinggalkan sesi SSH terbuka di
+  komputer yang dipakai bersama
+- Kalau ingin lapisan tambahan, phpMyAdmin mendukung `PMA_ABSOLUTE_URI` dan
+  autentikasi HTTP lewat nginx di depannya — tetapi untuk pemakaian pribadi
+  lewat terowongan, batasnya sudah cukup
+
+### Mematikannya lagi
+
+```bash
+docker compose stop phpmyadmin
 ```
 ## Memperbarui aplikasi
 
