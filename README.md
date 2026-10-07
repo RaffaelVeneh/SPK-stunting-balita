@@ -51,10 +51,11 @@ Sistem ini dirancang sebagai **Alat Triase Klinis** — bukan model prediktif �
                      │
          ┌───────────┼───────────┐
          ▼           ▼           ▼
-  ┌─────────────┐ ┌───────┐ ┌──────────────────────────┐
-  │ MySQL 8.4   │ │Redis 7│ │ dummy_balita_7kriteria.csv│
-  │ Port 3307   │ │:6380  │ │ 120 balita, 7 kriteria    │
-  └─────────────┘ └───────┘ └──────────────────────────┘
+  ┌────────────────┐ ┌───────┐
+  │ MySQL 8.4      │ │Redis 7│
+  │ Port 3307      │ │:6380  │
+  │ tabel balita_spk│ │       │
+  └────────────────┘ └───────┘
 ```
 
 > **Catatan metodologi**: metode skoring **difiksasi ke MOORA saja**. SAW sudah dihapus
@@ -190,8 +191,10 @@ dari profil anak, sehingga tidak berubah karena komposisi kohort.
 | Sedang | C1 = 3, atau C1 ≤ 2 dengan ≥ 2 kriteria ≥ 4, atau ≥ 3 kriteria = 3 | Pemantauan Rutin Posyandu & Suplementasi Vitamin |
 | Rendah | selainnya | Pemantauan Rutin Posyandu |
 
-Anak dengan data < 5 dari 7 kriteria ditandai **perlu verifikasi lapangan** dan tingkatnya
-tidak boleh diturunkan sepihak.
+Ketujuh kriteria **wajib terisi**. Balita dengan kriteria kosong tidak dapat masuk sistem:
+form menolaknya lebih dulu dan API membalas 422. Data yang salah atau sudah tidak terpakai
+**dinonaktifkan**, bukan dihapus, sehingga keluar dari perhitungan tetapi tetap dapat
+diperiksa dan diaktifkan kembali.
 
 ---
 
@@ -204,7 +207,8 @@ SPK Stunting Balita/
 │   │   ├── app/
 │   │   │   ├── Http/Controllers/
 │   │   │   │   ├── AuthController.php     # Login, Register, Logout, Me
-│   │   │   │   └── SpkController.php      # Kriteria, Calculate, AHP, Dataset
+│   │   │   │   ├── SpkController.php      # Kriteria, Calculate, AHP, Dataset
+│   │   │   │   └── BalitaController.php   # CRUD data balita (tambah, ubah, nonaktif)
 │   │   │   ├── Models/
 │   │   │   │   └── User.php               # Eloquent model + role + superadmin
 │   │   │   ├── Rules/
@@ -217,9 +221,8 @@ SPK Stunting Balita/
 │   │   │           ├── AhpService.php          # AHP crisp (metode tegas + uji konsistensi)
 │   │   │           ├── MooraService.php        # Normalisasi Euclidean + triase klinis absolut
 │   │   │           └── SpkEngine.php           # Router (MOORA saja)
-│   │   ├── storage/dataset/               # Dataset DI DALAM repo, agar hasil clone mandiri
-│   │   │   ├── dummy_balita_7kriteria.csv # 120 balita, 7 kriteria lengkap (DIPAKAI)
-│   │   │   └── data_balita.csv            # 121.001 baris, 4 kolom (cadangan lama)
+│   │   ├── storage/dataset/               # Bahan awal seeder saja, BUKAN sumber saat berjalan
+│   │   │   └── dummy_balita_7kriteria.csv # 120 balita, 7 kriteria lengkap
 │   │   ├── database/migrations/           # Tabel users, spk_sessions, wilayah, dst.
 │   │   ├── routes/api.php                 # Semua endpoint REST API
 │   │   └── Dockerfile                     # PHP 8.2 + Composer + Artisan serve
@@ -355,28 +358,29 @@ Daftarkan akun dengan email berikut untuk mendapat role `superadmin` secara otom
 
 ---
 
-## 📊 Dataset
+## 📊 Data Balita
 
-Sistem memakai **dataset dummy sintetis** sebagai sumber utama, murni dibangkitkan
-(tidak mengambil dari data lapangan), sesuai ketentuan penelitian ini.
+Data balita disimpan di **tabel `balita_spk`** pada MySQL, bukan di berkas. Itu
+satu-satunya sumber saat aplikasi berjalan, sehingga data yang ditambah atau diubah
+lewat antarmuka langsung ikut perhitungan berikutnya.
 
-| Atribut | Dataset utama | Dataset cadangan |
-|---|---|---|
-| **File** | `backend/storage/dataset/dummy_balita_7kriteria.csv` | `backend/storage/dataset/data_balita.csv` |
-| **Jumlah** | 120 balita | 121.001 baris |
-| **Kolom** | 16 (identitas, antropometri, HAZ, status gizi, tren, **c1–c7**, kelengkapan) | 4 |
-| **Kriteria tersedia** | **Ketujuh (C1–C7), semua bervariasi penuh 1–5** | Hanya C1 (C2 & C4 dikarang heuristik) |
-| **Profil klinis unik** | 117 dari 120 | 5 dari 20 (pada sampel yang dipakai) |
-| **Korelasi antar-kriteria** | +0,05 s.d. +0,52 (koheren, tidak kolinear) | C1 vs C2 r = 0,87 (kolinear) |
+Berkas CSV **tidak lagi dibaca** aplikasi. Ia hanya dipakai sekali oleh
+`BalitaSpkSeeder` untuk mengisi data awal ketika tabelnya masih kosong, dan seeder itu
+berhenti sendiri kalau tabel sudah berisi — supaya `migrate --seed` di produksi tidak
+menimpa data yang sudah diedit pengguna.
 
-> **Mengapa dataset cadangan tidak dipakai lagi**: pada format 4 kolom, 4 dari 7 kriteria
-> menjadi konstan dan sisanya berkolinear kuat. Akibatnya perangkingan **tidak sensitif
-> terhadap bobot AHP** — diuji dengan 7 skenario bobot yang sangat berbeda, Spearman
-> selalu 1,0000 dan tidak ada satu pun peringkat balita yang berubah. Sistem jadi tidak
-> dapat mendemonstrasikan kemampuannya membedakan prioritas.
+| Atribut | Keterangan |
+|---|---|
+| **Sumber saat berjalan** | tabel `balita_spk` (MySQL 8.4) |
+| **Pengisian awal** | `backend/storage/dataset/dummy_balita_7kriteria.csv`, hanya oleh seeder, sekali |
+| **Jumlah** | 120 balita |
+| **Kriteria** | Ketujuh (C1–C7) wajib terisi 1–5; baris tidak lengkap ditolak API |
+| **Status** | Kolom `aktif`. Nonaktif keluar dari perhitungan tetapi tetap tampil di daftar |
 
-Dataset dummy dibangkitkan oleh `analisis/generate_dataset_dummy.py` dengan seed tetap
-(`SEED = 20260730`), sehingga hasilnya selalu sama dan dapat direproduksi.
+Data dummy murni dibangkitkan (tidak mengambil dari data lapangan), sesuai ketentuan
+penelitian ini, oleh `analisis/generate_dataset_dummy.py` dengan seed tetap
+(`SEED = 20260730`) sehingga hasilnya selalu sama dan dapat direproduksi. Seluruh 120
+balita lengkap tujuh kriteria.
 
 ---
 
@@ -389,8 +393,7 @@ Dataset dummy dibangkitkan oleh `analisis/generate_dataset_dummy.py` dengan seed
 - [x] Pita tujuh bobot yang lebarnya sebanding dengan bobot AHP-nya
 - [x] Penyaring jumlah baris, status gizi, dan pencarian kode / nama
 - [x] Tingkat prioritas dari **aturan klinis absolut**, bukan ambang relatif kohort
-- [x] Data kosong **tidak** diimputasi; balita dengan data < 5/7 ditandai perlu verifikasi
-      **tanpa** menurunkan tingkatnya
+- [x] Ketujuh kriteria **wajib** terisi; data tidak lengkap ditolak, bukan diimputasi
 - [x] Perangkingan seri: skor sama mendapat peringkat sama
 - [x] Panel rincian per balita: nilai tujuh kriteria, dasar tingkat, dan tindakan yang disarankan
 - [x] Panel rincian mengunci gulir halaman, dapat digulir sendiri, dan ditutup dengan Escape
