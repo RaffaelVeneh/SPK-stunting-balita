@@ -177,8 +177,21 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     [result]
   );
 
+  // Hasil resmi (balita aktif) digabung dengan daftar rujukan (balita nonaktif)
+  // lalu diurutkan menurut skor, supaya baris nonaktif berada di POSISINYA,
+  // bukan di paling bawah. Skor keduanya berasal dari basis normalisasi yang
+  // sedikit berbeda — resmi atas yang aktif, rujukan atas seluruhnya — dengan
+  // selisih sekitar 1,45 persen. Urutannya karena itu perkiraan posisi, bukan
+  // peringkat resmi.
+  const gabungan = useMemo(() => {
+    const resmi = result?.rankings ?? [];
+    const rujukan = result?.nonaktif ?? [];
+    if (rujukan.length === 0) return resmi;
+    return [...resmi, ...rujukan].sort((a, b) => b.score - a.score);
+  }, [result]);
+
   const baris = useMemo(() => {
-    let semua = result?.rankings ?? [];
+    let semua = gabungan;
 
     if (filterAktif !== 'semua') {
       semua = semua.filter((r) =>
@@ -191,7 +204,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
     return semua.filter(
       (r) => r.id.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)
     );
-  }, [result, cari, filterAktif]);
+  }, [gabungan, cari, filterAktif]);
 
   /* ------------------------------------------------------------------ */
   /* SEKSI BUKTI                                                        */

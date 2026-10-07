@@ -80,7 +80,14 @@ export interface RankingItem {
  */
 export interface CalculationResult {
   method: 'moora';
+  /** Hasil RESMI, dihitung atas balita aktif saja. */
   rankings: RankingItem[];
+  /**
+   * Balita nonaktif beserta posisinya dari perhitungan KEDUA atas seluruh
+   * balita. Bukan hasil resmi; hanya untuk menunjukkan kalau diaktifkan lagi
+   * ia ada di urutan berapa.
+   */
+  nonaktif?: RankingItem[];
   normalized_matrix: Record<string, Record<string, number>>;
   weighted_matrix: Record<string, Record<string, number>>;
   is_partial_dataset?: boolean;

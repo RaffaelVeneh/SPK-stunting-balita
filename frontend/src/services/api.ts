@@ -200,7 +200,10 @@ export const api = {
 
       if (res.ok) {
         const json = await res.json();
-        return json.data;
+        // Daftar rujukan balita nonaktif berada di tingkat atas respons, bukan
+        // di dalam 'data'. Tanpa disertakan di sini, ia terbuang dan baris
+        // nonaktif hilang dari tabel.
+        return { ...json.data, nonaktif: json.nonaktif ?? [] };
       }
     } catch {
       // Jaringan gagal; ditangani di bawah.
