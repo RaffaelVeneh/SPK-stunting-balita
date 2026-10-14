@@ -8,13 +8,13 @@ namespace App\Services\SPK;
  * ============================================================================
  * BOBOT RESMI (sudah disetujui dosen pembimbing)
  * ============================================================================
- *   C1 35,068%   C2 8,708%   C3 22,755%   C4 14,609%
- *   C5 5,076%    C6 8,708%   C7 5,076%
+ *   C1 34,493%   C2 8,775%   C3 22,820%   C4 14,791%
+ *   C5 5,173%    C6 8,775%   C7 5,173%
  *
  * Diperoleh dari MATRIKS PERBANDINGAN BERPASANGAN tetap di bawah, memakai
- * Fuzzy AHP (Buckley 1985) atas matriks yang sama. Uji konsistensi pada
- * matriks tegas: lambda_max 7,062469 · CI 0,010411 · RI 1,32 ·
- * CR 0,007887  ->  KONSISTEN (CR < 0,10).
+ * Fuzzy AHP (Buckley 1985) dengan defuzzifikasi centroid w = (l + m + u) / 3.
+ * Uji konsistensi pada matriks tegas: lambda_max 7,062469 · CI 0,010411 ·
+ * RI 1,32 · CR 0,007887  ->  KONSISTEN (CR < 0,10).
  *
  * Angka ini cocok dengan hasil perhitungan tegas (crisp) sampai 0,1 poin
  * persentase, sehingga kesimpulan bobotnya stabil terhadap pemodelan
@@ -29,7 +29,7 @@ namespace App\Services\SPK;
  *
  * LAPIS 2 — TINGKAT (tier) = KELUARAN. Urutan kepentingan di bawah ini adalah
  *   HASIL perhitungan bobot, bukan penyebabnya. Jadi kalau ada yang bertanya
- *   "mengapa C2 di tingkat 4?", jawabannya: karena bobotnya 8,708%, setara C6.
+ *   "mengapa C2 di tingkat 4?", jawabannya: karena bobotnya 8,775%, setara C6.
  *
  * Dasar tiap penempatan tetap disertakan sebagai alasan mengapa perbandingan
  * pakar bernilai demikian, dengan rujukan Perpres 72/2021 Pasal 1 dan bukti
@@ -84,7 +84,7 @@ class KriteriaDefinition
             'jalur' => 'Langsung',
             'type' => 'benefit',
             'description' => 'Evaluasi antropometri stunting (TB/U z-score). 1=Optimal/Tinggi, 4=Stunted, 5=Severely Stunted.',
-            'dasar' => 'Bobot 35,07%, tertinggi. Matriks menilai C1 4x lebih penting daripada C2, 2x daripada C3, dan 6x daripada C5 maupun C7. Prevalensi stunting Indonesia pooled 30,9% (642.596 subjek); growth faltering terbesar terjadi sebelum 24 bulan (Victora 2010) dan merupakan pergeseran seluruh distribusi populasi, bukan sekelompok kecil berisiko tinggi (Roth 2017). C1 adalah MANIFESTASI stunting, bukan penyebabnya; ia diberi bobot tertinggi atas dasar logika TRIASE — sistem ini alat penapisan prioritas, dan status gizi terukur saat ini adalah sinyal paling langsung bahwa anak butuh intervensi sekarang.',
+            'dasar' => 'Bobot 34,49%, tertinggi. Matriks menilai C1 4x lebih penting daripada C2, 2x daripada C3, dan 6x daripada C5 maupun C7. Prevalensi stunting Indonesia pooled 30,9% (642.596 subjek); growth faltering terbesar terjadi sebelum 24 bulan (Victora 2010) dan merupakan pergeseran seluruh distribusi populasi, bukan sekelompok kecil berisiko tinggi (Roth 2017). C1 adalah MANIFESTASI stunting, bukan penyebabnya; ia diberi bobot tertinggi atas dasar logika TRIASE — sistem ini alat penapisan prioritas, dan status gizi terukur saat ini adalah sinyal paling langsung bahwa anak butuh intervensi sekarang.',
         ],
         [
             'code' => 'C2',
@@ -94,7 +94,7 @@ class KriteriaDefinition
             'jalur' => 'Langsung',
             'type' => 'benefit',
             'description' => 'Berat badan lahir dan usia gestasi. 1=Cukup Bulan & BB Normal, 5=BBLSR (<1500g) / Prematur ekstrem.',
-            'dasar' => 'Bobot 8,71%, setara C6 dan berada di bawah C1, C3, dan C4. Perbandingan pakar menilai C1 4x lebih penting, C3 3x, dan C4 2x daripada C2. Bukti kuantitatifnya sendiri kuat — Danaei et al. 2016 (PLoS Med, 44,1 juta anak, 137 negara) menempatkan gangguan pertumbuhan janin/prematur sebagai klaster faktor risiko terdepan (10,8 juta kasus), dengan BBLR pooled OR 2,92 (2,56-3,33) dan PAR SGA 20%; konteks Indonesia POR BBLR 2,39 (Gusnedi 2023). Bobotnya tidak setinggi itu karena riwayat lahir bersifat IRREVERSIBLE: ia menjelaskan mengapa seorang anak berisiko, tetapi tidak dapat diintervensi lagi, sehingga nilainya lebih rendah sebagai penentu PRIORITAS tindakan.',
+            'dasar' => 'Bobot 8,77%, setara C6 dan berada di bawah C1, C3, dan C4. Perbandingan pakar menilai C1 4x lebih penting, C3 3x, dan C4 2x daripada C2. Bukti kuantitatifnya sendiri kuat — Danaei et al. 2016 (PLoS Med, 44,1 juta anak, 137 negara) menempatkan gangguan pertumbuhan janin/prematur sebagai klaster faktor risiko terdepan (10,8 juta kasus), dengan BBLR pooled OR 2,92 (2,56-3,33) dan PAR SGA 20%; konteks Indonesia POR BBLR 2,39 (Gusnedi 2023). Bobotnya tidak setinggi itu karena riwayat lahir bersifat IRREVERSIBLE: ia menjelaskan mengapa seorang anak berisiko, tetapi tidak dapat diintervensi lagi, sehingga nilainya lebih rendah sebagai penentu PRIORITAS tindakan.',
         ],
         [
             'code' => 'C3',
@@ -104,7 +104,7 @@ class KriteriaDefinition
             'jalur' => 'Langsung',
             'type' => 'benefit',
             'description' => 'Frekuensi dan keparahan infeksi 6 bulan terakhir. 1=Tidak pernah sakit, 5=Infeksi kronis / TB Anak.',
-            'dasar' => 'Bobot 22,76%, tertinggi kedua. Perbandingan pakar menilai C3 3x lebih penting daripada C2, 2x daripada C4, dan 4x daripada C5 maupun C7. Perpres 72/2021 Pasal 1 menyebut "infeksi berulang" sebagai penyebab langsung stunting, setara kekurangan gizi kronis. Dikuatkan Danaei 2016 (diare 5,8 juta kasus atribusional) dan Checkley 2008: odds stunting naik 1,13 (1,07-1,19) per 5 episode diare, dengan 25% (8-38%) stunting diatribusikan pada >=5 episode sebelum usia 24 bulan. Ia dapat diintervensi dan sedang berlangsung, sehingga berbobot tinggi.',
+            'dasar' => 'Bobot 22,82%, tertinggi kedua. Perbandingan pakar menilai C3 3x lebih penting daripada C2, 2x daripada C4, dan 4x daripada C5 maupun C7. Perpres 72/2021 Pasal 1 menyebut "infeksi berulang" sebagai penyebab langsung stunting, setara kekurangan gizi kronis. Dikuatkan Danaei 2016 (diare 5,8 juta kasus atribusional) dan Checkley 2008: odds stunting naik 1,13 (1,07-1,19) per 5 episode diare, dengan 25% (8-38%) stunting diatribusikan pada >=5 episode sebelum usia 24 bulan. Ia dapat diintervensi dan sedang berlangsung, sehingga berbobot tinggi.',
         ],
         [
             'code' => 'C4',
@@ -114,7 +114,7 @@ class KriteriaDefinition
             'jalur' => 'Langsung',
             'type' => 'benefit',
             'description' => 'Praktik ASI eksklusif 6 bulan dan kecukupan protein hewani MPASI. 1=ASI & MPASI adekuat, 5=Gagal makan parah.',
-            'dasar' => 'Bobot 14,61%, di bawah C3 tetapi di atas C2. Perbandingan pakar menilai C1 3x dan C3 2x lebih penting daripada C4, sementara C4 dinilai 2x lebih penting daripada C2 dan 3x daripada C5. Determinan langsung asupan (Perpres 72/2021 Pasal 1: "kekurangan gizi kronis"). Bukti intervensinya TERKUAT di antara kriteria yang dapat diubah: RCT SHINE menunjukkan lengan IYCF menaikkan LAZ +0,16 (0,08-0,23) dan menurunkan stunting 35%->27%. Namun bukti observasional Indonesia lebih lemah — sintesis terbaik (Gusnedi 2023) tidak melaporkan pooled estimate untuk ASI eksklusif maupun keragaman pangan — sehingga bobotnya tidak diletakkan setinggi C3.',
+            'dasar' => 'Bobot 14,79%, di bawah C3 tetapi di atas C2. Perbandingan pakar menilai C1 3x dan C3 2x lebih penting daripada C4, sementara C4 dinilai 2x lebih penting daripada C2 dan 3x daripada C5. Determinan langsung asupan (Perpres 72/2021 Pasal 1: "kekurangan gizi kronis"). Bukti intervensinya TERKUAT di antara kriteria yang dapat diubah: RCT SHINE menunjukkan lengan IYCF menaikkan LAZ +0,16 (0,08-0,23) dan menurunkan stunting 35%->27%. Namun bukti observasional Indonesia lebih lemah — sintesis terbaik (Gusnedi 2023) tidak melaporkan pooled estimate untuk ASI eksklusif maupun keragaman pangan — sehingga bobotnya tidak diletakkan setinggi C3.',
         ],
         [
             'code' => 'C5',
@@ -124,7 +124,7 @@ class KriteriaDefinition
             'jalur' => 'Tidak langsung',
             'type' => 'benefit',
             'description' => 'Ketersediaan jamban sehat dan sumber air minum keluarga. 1=Air perpipaan & jamban sendiri, 5=BABS / limbah terbuka.',
-            'dasar' => 'Bobot 5,08%, terendah bersama C7. Perpres 72/2021 dan Roadmap Bappenas menggolongkannya Intervensi Sensitif (penyebab tidak langsung). Beban atribusionalnya justru besar — Danaei 2016 mencatat sanitasi tidak layak 7,2 juta kasus, dan di Indonesia jamban tidak layak + air tidak diolah aOR 3,47 (1,73-7,28) (Torlesse 2016) serta air tidak layak POR 1,42 (Gusnedi 2023). Bobotnya tetap rendah karena dua alasan: pengaruhnya bekerja melalui jalur infeksi yang sudah terwakili C3, dan dalam tiga RCT faktorial besar (WASH-Benefits, SHINE) lengan WASH tidak berpengaruh pada pertumbuhan linear. Catatan penting: uji tersebut hanya menguji WASH dasar tingkat rumah tangga di wilayah dengan cakupan jamban cukup tinggi, sementara akses sanitasi layak di Indonesia hanya 11,5%, sehingga hasil null itu belum tentu berlaku di sini.',
+            'dasar' => 'Bobot 5,17%, terendah bersama C7. Perpres 72/2021 dan Roadmap Bappenas menggolongkannya Intervensi Sensitif (penyebab tidak langsung). Beban atribusionalnya justru besar — Danaei 2016 mencatat sanitasi tidak layak 7,2 juta kasus, dan di Indonesia jamban tidak layak + air tidak diolah aOR 3,47 (1,73-7,28) (Torlesse 2016) serta air tidak layak POR 1,42 (Gusnedi 2023). Bobotnya tetap rendah karena dua alasan: pengaruhnya bekerja melalui jalur infeksi yang sudah terwakili C3, dan dalam tiga RCT faktorial besar (WASH-Benefits, SHINE) lengan WASH tidak berpengaruh pada pertumbuhan linear. Catatan penting: uji tersebut hanya menguji WASH dasar tingkat rumah tangga di wilayah dengan cakupan jamban cukup tinggi, sementara akses sanitasi layak di Indonesia hanya 11,5%, sehingga hasil null itu belum tentu berlaku di sini.',
         ],
         [
             'code' => 'C6',
@@ -134,7 +134,7 @@ class KriteriaDefinition
             'jalur' => 'Tidak langsung',
             'type' => 'benefit',
             'description' => 'Kondisi ekonomi keluarga dan daya beli pangan bergizi. 1=Mapan (>UMR), 5=Kemiskinan ekstrem.',
-            'dasar' => 'Bobot 8,71%, setara C2. Perbandingan pakar menilai C6 2x lebih penting daripada C5 dan C7, tetapi dinilai lebih rendah daripada C1, C3, dan C4. Perpres 72/2021 dan Roadmap Bappenas menggolongkan ketahanan pangan dan ekonomi keluarga sebagai Intervensi Sensitif. Asosiasinya kuat — kerawanan pangan POR 2,00 (1,37-2,92), POR terbesar di tingkat rumah tangga — tetapi bukti intervensinya lemah: bantuan tunai hanya menggeser stunting -1,35% dan HAZ +0,024. Karena itu bobotnya moderat, bukan tinggi.',
+            'dasar' => 'Bobot 8,77%, setara C2. Perbandingan pakar menilai C6 2x lebih penting daripada C5 dan C7, tetapi dinilai lebih rendah daripada C1, C3, dan C4. Perpres 72/2021 dan Roadmap Bappenas menggolongkan ketahanan pangan dan ekonomi keluarga sebagai Intervensi Sensitif. Asosiasinya kuat — kerawanan pangan POR 2,00 (1,37-2,92), POR terbesar di tingkat rumah tangga — tetapi bukti intervensinya lemah: bantuan tunai hanya menggeser stunting -1,35% dan HAZ +0,024. Karena itu bobotnya moderat, bukan tinggi.',
         ],
         [
             'code' => 'C7',
@@ -144,7 +144,7 @@ class KriteriaDefinition
             'jalur' => 'Tidak langsung',
             'type' => 'benefit',
             'description' => 'Keaktifan kunjungan Posyandu bulanan dan kelengkapan imunisasi dasar. 1=100% Rutin & Tuntas, 5=Drop out / Tidak pernah.',
-            'dasar' => 'Bobot 5,08%, terendah bersama C5. Dinilai 6x lebih rendah daripada C1 dan 4x lebih rendah daripada C3. Kriteria dengan bukti TERLEMAH: tidak ada satu pun systematic review atau meta-analisis yang menghubungkan kehadiran Posyandu maupun kelengkapan penimbangan dengan stunting. Kaitan imunisasi hanya bertumpu pada satu studi kasus-kontrol 60 kasus (OR 4,96) yang papernya sendiri mengutip hasil bertentangan, termasuk satu hasil null (p=0,056). Proksi terkuat yang tersedia hanyalah ANC <4 kali kunjungan, POR 1,25 (1,11-1,41). Ini kriteria yang paling mungkin dipersoalkan penguji.',
+            'dasar' => 'Bobot 5,17%, terendah bersama C5. Dinilai 6x lebih rendah daripada C1 dan 4x lebih rendah daripada C3. Kriteria dengan bukti TERLEMAH: tidak ada satu pun systematic review atau meta-analisis yang menghubungkan kehadiran Posyandu maupun kelengkapan penimbangan dengan stunting. Kaitan imunisasi hanya bertumpu pada satu studi kasus-kontrol 60 kasus (OR 4,96) yang papernya sendiri mengutip hasil bertentangan, termasuk satu hasil null (p=0,056). Proksi terkuat yang tersedia hanyalah ANC <4 kali kunjungan, POR 1,25 (1,11-1,41). Ini kriteria yang paling mungkin dipersoalkan penguji.',
         ],
     ];
 

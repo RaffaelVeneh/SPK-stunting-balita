@@ -117,13 +117,13 @@ export const api = {
     // bobot ini, bukan penyebabnya.
     if (IZINKAN_CADANGAN) {
       return [
-        { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U)', weight: 0.350684, type: 'benefit', tier: 1, jalur: 'Langsung' },
-        { code: 'C2', name: 'Riwayat Kelahiran Berisiko (BBLR/Prematur)', weight: 0.087080, type: 'benefit', tier: 4, jalur: 'Langsung' },
-        { code: 'C3', name: 'Riwayat Penyakit / Infeksi', weight: 0.227551, type: 'benefit', tier: 2, jalur: 'Langsung' },
-        { code: 'C4', name: 'Kualitas Pola Pemberian Makan (ASI/MPASI)', weight: 0.146093, type: 'benefit', tier: 3, jalur: 'Langsung' },
-        { code: 'C5', name: 'Sanitasi & Akses Air Bersih', weight: 0.050755, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
-        { code: 'C6', name: 'Kerentanan Sosial-Ekonomi', weight: 0.087080, type: 'benefit', tier: 4, jalur: 'Tidak langsung' },
-        { code: 'C7', name: 'Akses Layanan Kesehatan (Posyandu)', weight: 0.050755, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
+        { code: 'C1', name: 'Kondisi Gizi & Pertumbuhan (TB/U)', weight: 0.344933, type: 'benefit', tier: 1, jalur: 'Langsung' },
+        { code: 'C2', name: 'Riwayat Kelahiran Berisiko (BBLR/Prematur)', weight: 0.087745, type: 'benefit', tier: 4, jalur: 'Langsung' },
+        { code: 'C3', name: 'Riwayat Penyakit / Infeksi', weight: 0.228203, type: 'benefit', tier: 2, jalur: 'Langsung' },
+        { code: 'C4', name: 'Kualitas Pola Pemberian Makan (ASI/MPASI)', weight: 0.147913, type: 'benefit', tier: 3, jalur: 'Langsung' },
+        { code: 'C5', name: 'Sanitasi & Akses Air Bersih', weight: 0.051731, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
+        { code: 'C6', name: 'Kerentanan Sosial-Ekonomi', weight: 0.087745, type: 'benefit', tier: 4, jalur: 'Tidak langsung' },
+        { code: 'C7', name: 'Akses Layanan Kesehatan (Posyandu)', weight: 0.051731, type: 'benefit', tier: 5, jalur: 'Tidak langsung' },
       ];
     }
 

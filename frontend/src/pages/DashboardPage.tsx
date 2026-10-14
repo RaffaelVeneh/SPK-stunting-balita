@@ -398,7 +398,7 @@ export const DashboardPage: React.FC<Props> = ({ seksi, onSiapEkspor }) => {
   /* ------------------------------------------------------------------ */
   if (seksi === 'panduan') {
     return (
-      <div className="masuk px-4 py-5 sm:px-6">
+      <div className="masuk">
         <MethodologyGuide criteria={criteria} balitas={balitas} result={result} ahpData={ahp} />
       </div>
     );

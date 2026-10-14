@@ -20,7 +20,7 @@ namespace App\Services\SPK;
  *       v > 1  -> (v-1, v, v+1) dipotong ke [1, 9]
  *       v < 1  -> kebalikannya, yaitu (1/u, 1/m, 1/l)
  *   Bobot: rata-rata geometrik fuzzy per baris, dinormalisasi, lalu
- *          defuzzifikasi graded mean w = (l + 4m + u) / 6.
+ *          defuzzifikasi centroid w = (l + m + u) / 3.
  *
  * Uji konsistensi (CR) dihitung pada matriks tegas, mengikuti metode modul:
  * normalisasi kolom lalu rata-rata baris, RI(n=7) = 1,32.
@@ -110,8 +110,8 @@ class FuzzyAhpService
                 $sumM > 0 ? $m / $sumM : 0.0,
                 $sumL > 0 ? $u / $sumL : 0.0,
             ];
-            // 3. Defuzzifikasi graded mean
-            $tegas[$i] = ($tfn[$i][0] + 4.0 * $tfn[$i][1] + $tfn[$i][2]) / 6.0;
+            // 3. Defuzzifikasi centroid (rata-rata segitiga sederhana)
+            $tegas[$i] = ($tfn[$i][0] + $tfn[$i][1] + $tfn[$i][2]) / 3.0;
         }
 
         $total = array_sum($tegas);

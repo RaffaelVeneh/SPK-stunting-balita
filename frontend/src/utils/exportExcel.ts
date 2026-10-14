@@ -86,7 +86,7 @@ export const SPK_WORKFLOW_STEPS = [
   { tahap: 2, proses: 'Menentukan Himpunan Linguistik (Sub-Kriteria)', desc: 'Menentukan 5 kategori derajat risiko untuk setiap kriteria: Sangat Rendah (1), Rendah (2), Sedang (3), Tinggi (4), Sangat Tinggi (5).', rumus: 'Skala Ordinal 1 s/d 5 (Benefit terhadap Urgensi Intervensi)' },
   { tahap: 3, proses: 'Menentukan Domain & Fungsi Keanggotaan', desc: 'Menetapkan batas domain kurva Segitiga (titik puncak) dan Trapesium (rentang saturasi), dengan batas beririsan (overlap) agar stabil.', rumus: 'Kurva Trapesium [a, b, c, d] dan Kurva Segitiga [a, b, c]' },
   { tahap: 4, proses: 'Penerjemahan Sub-Kriteria (Fuzzifikasi)', desc: 'Mengonversi data observasi riil balita ke dalam nilai tegas skala ordinal 1–5 berdasarkan interval sub-kriteria.', rumus: 'Input x_ij in {1, 2, 3, 4, 5}' },
-  { tahap: 5, proses: 'Pembobotan Prioritas Fuzzy AHP', desc: 'Matriks perbandingan berpasangan Saaty 7x7 adalah MASUKAN: penilaian pakar gizi pada skala 1-9, ditulis tetap sebagai data. Bobot dihitung dengan Fuzzy AHP (Buckley 1985) atas matriks itu, lalu diuji rasio konsistensinya. Urutan tingkat kepentingan kriteria adalah KELUARAN dari perhitungan ini, bukan penyebabnya.', rumus: 'n_ij = a_ij / sum_i(a_ij); TFN(v-1, v, v+1); w = (l + 4m + u)/6; CR = CI/RI < 0.10' },
+  { tahap: 5, proses: 'Pembobotan Prioritas Fuzzy AHP', desc: 'Matriks perbandingan berpasangan Saaty 7x7 adalah MASUKAN: penilaian pakar gizi pada skala 1-9, ditulis tetap sebagai data. Bobot dihitung dengan Fuzzy AHP (Buckley 1985) atas matriks itu, lalu diuji rasio konsistensinya. Urutan tingkat kepentingan kriteria adalah KELUARAN dari perhitungan ini, bukan penyebabnya.', rumus: 'n_ij = a_ij / sum_i(a_ij); TFN(v-1, v, v+1); w = (l + m + u)/3; CR = CI/RI < 0.10' },
   { tahap: 6, proses: 'Normalisasi Matriks (MOORA)', desc: 'Menghitung matriks ternormalisasi (R). Pembagi dihitung hanya dari nilai yang tersedia, sehingga anak dengan data parsial tidak dirugikan oleh nilai yang tidak diketahui.', rumus: 'r_ij = x_ij / sqrt(sum_i x_ij^2)' },
   { tahap: 7, proses: 'Skor Akhir, Perangkingan, dan Triase Klinis', desc: 'Skor akhir menentukan URUTAN, sedangkan TINGKAT prioritas ditentukan oleh aturan klinis absolut dari profil anak itu sendiri, bukan dari posisinya di dalam kohort.', rumus: 'y_i = sum(w_j * r_ij); tingkat = aturan klinis (C1 dan jumlah kriteria risiko tinggi). Rank 1 = paling mendesak' },
 ];
@@ -244,36 +244,169 @@ export function exportSpkToExcel({
   XLSX.utils.book_append_sheet(wb, ws2, 'Perhitungan MOORA');
 
   // ==========================================
-  // SHEET 3: PEMBOBOTAN AHP
+  // SHEET 3: PEMBOBOTAN FUZZY AHP (BUCKLEY 1985) & AHP SAATY
   // ==========================================
   if (ahpData) {
     const sheet3Data: (string | number | null)[][] = [];
 
-    sheet3Data.push(['PEMBOBOTAN AHP (ANALYTIC HIERARCHY PROCESS)']);
-    sheet3Data.push(['Matriks Perbandingan Berpasangan Skala Saaty (1-9) oleh Pakar Gizi']);
+    sheet3Data.push(['PEMBOBOTAN FUZZY AHP (BUCKLEY 1985) & UJI KONSISTENSI SAATY']);
+    sheet3Data.push(['Sumber Kebenaran Tunggal: Matriks Penilaian Pakar Skala Saaty 1–9']);
     sheet3Data.push([]);
 
-    sheet3Data.push(['Kriteria', ...ahpData.criteria, 'Bobot Prioritas (w_j)']);
+    // 1. Matriks Saaty 7x7
+    sheet3Data.push(['1. MATRIKS PERBANDINGAN BERPASANGAN (SKALA SAATY 1-9)']);
+    sheet3Data.push(['Kriteria', ...ahpData.criteria, 'Jumlah Baris', 'Bobot AHP Tegas']);
+    const colSums = ahpData.criteria.map((_, j) => ahpData.matrix.reduce((s, row) => s + row[j], 0));
     ahpData.matrix.forEach((row, idx) => {
       const code = ahpData.criteria[idx];
-      const w = ahpData.ahp_result.weights[code] || 0;
-      sheet3Data.push([code, ...row, w]);
+      const sumRow = row.reduce((s, v) => s + v, 0);
+      const wCrisp = ahpData.ahp_result.weights[code] || 0;
+      sheet3Data.push([code, ...row, Number(sumRow.toFixed(4)), Number(wCrisp.toFixed(4))]);
     });
-
+    sheet3Data.push(['Jumlah Kolom', ...colSums.map((v) => Number(v.toFixed(4))), '', '']);
     sheet3Data.push([]);
-    sheet3Data.push(['UJI KONSISTENSI SAATY (CR < 0.10)']);
+
+    // 2. Uji Konsistensi Saaty
+    sheet3Data.push(['2. UJI KONSISTENSI SAATY (CR < 0,10 PADA MATRIKS TEGAS)']);
     sheet3Data.push(['Parameter', 'Nilai', 'Keterangan']);
-    sheet3Data.push(['Lambda Max (λmax)', Number(ahpData.ahp_result.lambda_max.toFixed(4)), 'Nilai Eigen Maksimum']);
-    sheet3Data.push(['Consistency Index (CI)', Number(ahpData.ahp_result.consistency_index.toFixed(4)), '(λmax - n) / (n - 1)']);
-    sheet3Data.push(['Random Index (RI n=7)', Number(ahpData.ahp_result.random_index.toFixed(4)), 'Tabel Standar Saaty n=7']);
+    sheet3Data.push(['Lambda Max (λmax)', Number(ahpData.ahp_result.lambda_max.toFixed(6)), 'Nilai Eigen Maksimum']);
+    sheet3Data.push(['Consistency Index (CI)', Number(ahpData.ahp_result.consistency_index.toFixed(6)), '(λmax - n) / (n - 1)']);
+    sheet3Data.push(['Random Index (RI n=7)', Number(ahpData.ahp_result.random_index.toFixed(2)), 'Standar Saaty n=7: 1,32']);
     sheet3Data.push([
       'Consistency Ratio (CR)',
-      Number(ahpData.ahp_result.consistency_ratio.toFixed(4)),
-      ahpData.ahp_result.is_valid ? 'KONSISTEN & VALID (CR < 0.10)' : 'TIDAK KONSISTEN',
+      Number(ahpData.ahp_result.consistency_ratio.toFixed(6)),
+      ahpData.ahp_result.is_valid ? 'KONSISTEN & VALID (CR < 0,10)' : 'TIDAK KONSISTEN',
     ]);
+    sheet3Data.push([]);
+
+    // Hitung 6 Langkah Fuzzy AHP Buckley
+    const n = ahpData.criteria.length;
+    const fuzzify = (v: number): [number, number, number] => {
+      if (Math.abs(v - 1.0) < 1e-9) return [1.0, 1.0, 1.0];
+      if (v > 1.0) return [Math.max(1.0, v - 1.0), v, Math.min(9.0, v + 1.0)];
+      const [l, m, u] = fuzzify(1.0 / v);
+      return [1.0 / u, 1.0 / m, 1.0 / l];
+    };
+
+    const prodTfn: [number, number, number][] = [];
+    const geoR: [number, number, number][] = [];
+    for (let i = 0; i < n; i++) {
+      let pL = 1.0, pM = 1.0, pU = 1.0;
+      for (let j = 0; j < n; j++) {
+        const [l, m, u] = fuzzify(ahpData.matrix[i][j]);
+        pL *= l;
+        pM *= m;
+        pU *= u;
+      }
+      prodTfn.push([pL, pM, pU]);
+      geoR.push([Math.pow(pL, 1.0 / n), Math.pow(pM, 1.0 / n), Math.pow(pU, 1.0 / n)]);
+    }
+
+    const sumGeoL = geoR.reduce((s, x) => s + x[0], 0);
+    const sumGeoM = geoR.reduce((s, x) => s + x[1], 0);
+    const sumGeoU = geoR.reduce((s, x) => s + x[2], 0);
+
+    const invL = 1.0 / sumGeoU;
+    const invM = 1.0 / sumGeoM;
+    const invU = 1.0 / sumGeoL;
+
+    const fuzzyWeights: [number, number, number][] = [];
+    const defuzzVal: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const wL = geoR[i][0] * invL;
+      const wM = geoR[i][1] * invM;
+      const wU = geoR[i][2] * invU;
+      fuzzyWeights.push([wL, wM, wU]);
+      // Defuzzifikasi centroid: (l + m + u) / 3
+      defuzzVal.push((wL + wM + wU) / 3.0);
+    }
+
+    const totalDefuzz = defuzzVal.reduce((s, x) => s + x, 0);
+    const finalWeights = defuzzVal.map((d) => d / totalDefuzz);
+
+    // Langkah 1: Hasil kali TFN
+    sheet3Data.push(['3. LANGKAH 1 — PERHITUNGAN HASIL KALI TFN PER BARIS']);
+    sheet3Data.push(['Kriteria', 'Hasil Kali Batas Bawah (l)', 'Hasil Kali Nilai Tengah (m)', 'Hasil Kali Batas Atas (u)', 'TFN Hasil Kali']);
+    ahpData.criteria.forEach((code, idx) => {
+      const p = prodTfn[idx];
+      sheet3Data.push([code, Number(p[0].toFixed(6)), Number(p[1].toFixed(6)), Number(p[2].toFixed(6)), `(${p[0].toFixed(6)}; ${p[1].toFixed(6)}; ${p[2].toFixed(6)})`]);
+    });
+    sheet3Data.push([]);
+
+    // Langkah 2: Fuzzy Geometric Mean
+    sheet3Data.push(['4. LANGKAH 2 — FUZZY GEOMETRIC MEAN SETIAP KRITERIA (r_i = Pangkat 1/7)']);
+    sheet3Data.push(['Kriteria', 'Komponen Bawah (l^1/7)', 'Komponen Tengah (m^1/7)', 'Komponen Atas (u^1/7)', 'Vektor r_i']);
+    ahpData.criteria.forEach((code, idx) => {
+      const r = geoR[idx];
+      sheet3Data.push([code, Number(r[0].toFixed(6)), Number(r[1].toFixed(6)), Number(r[2].toFixed(6)), `(${r[0].toFixed(6)}; ${r[1].toFixed(6)}; ${r[2].toFixed(6)})`]);
+    });
+    sheet3Data.push([]);
+
+    // Langkah 3: Jumlah & Invers
+    sheet3Data.push(['5. LANGKAH 3 — JUMLAH & INVERS JUMLAH FUZZY GEOMETRIC MEAN']);
+    sheet3Data.push(['Komponen', 'Jumlah (Σ r_i)', 'Invers Jumlah ( (Σ r_i)^-1 )']);
+    sheet3Data.push(['Bawah (l)', Number(sumGeoL.toFixed(6)), Number(invL.toFixed(6))]);
+    sheet3Data.push(['Tengah (m)', Number(sumGeoM.toFixed(6)), Number(invM.toFixed(6))]);
+    sheet3Data.push(['Atas (u)', Number(sumGeoU.toFixed(6)), Number(invU.toFixed(6))]);
+    sheet3Data.push([]);
+
+    // Langkah 4: Bobot Fuzzy
+    sheet3Data.push(['6. LANGKAH 4 — BOBOT FUZZY SEMUA KRITERIA (w_i = r_i ⊗ Invers)']);
+    sheet3Data.push(['Kriteria', 'Batas Bawah (w_l)', 'Nilai Tengah (w_m)', 'Batas Atas (w_u)', 'Bobot Fuzzy (TFN)']);
+    ahpData.criteria.forEach((code, idx) => {
+      const fw = fuzzyWeights[idx];
+      sheet3Data.push([code, Number(fw[0].toFixed(6)), Number(fw[1].toFixed(6)), Number(fw[2].toFixed(6)), `(${fw[0].toFixed(6)}; ${fw[1].toFixed(6)}; ${fw[2].toFixed(6)})`]);
+    });
+    sheet3Data.push([]);
+
+    // Langkah 5 & 6: Defuzzifikasi Centroid & Normalisasi Bobot Akhir
+    sheet3Data.push(['7. LANGKAH 5 & 6 — DEFUZZIFIKASI CENTROID ( (l+m+u)/3 ) & NORMALISASI BOBOT AKHIR']);
+    sheet3Data.push(['Kriteria', 'Substitusi Rumus Defuzzifikasi', 'Nilai Defuzzifikasi (M_i)', 'Perhitungan Normalisasi (M_i / ΣM)', 'Bobot Akhir (w_i)', 'Persentase', 'Peringkat']);
+
+    const peringkatKriteria = finalWeights
+      .map((w, idx) => ({ idx, w }))
+      .sort((a, b) => b.w - a.w)
+      .map((item, rank) => ({ ...item, rank: rank + 1 }));
+
+    const rankMap = new Map(peringkatKriteria.map((p) => [p.idx, p.rank]));
+
+    ahpData.criteria.forEach((code, idx) => {
+      const fw = fuzzyWeights[idx];
+      const m = defuzzVal[idx];
+      const w = finalWeights[idx];
+      const rumusStr = `(${fw[0].toFixed(6)} + ${fw[1].toFixed(6)} + ${fw[2].toFixed(6)}) / 3`;
+      const normStr = `${m.toFixed(6)} / ${totalDefuzz.toFixed(6)}`;
+      sheet3Data.push([
+        code,
+        rumusStr,
+        Number(m.toFixed(6)),
+        normStr,
+        Number(w.toFixed(6)),
+        `${(w * 100).toFixed(4)}%`,
+        rankMap.get(idx) ?? idx + 1,
+      ]);
+    });
+    sheet3Data.push(['Total', '—', Number(totalDefuzz.toFixed(6)), '—', Number(finalWeights.reduce((s, x) => s + x, 0).toFixed(6)), '100,0000%', '—']);
+    sheet3Data.push([]);
+
+    // Jejak Audit jika ada
+    if (ahpData.jejak_audit && ahpData.jejak_audit.length > 0) {
+      sheet3Data.push(['8. JEJAK AUDIT 21 PERBANDINGAN BERPASANGAN PAKAR']);
+      sheet3Data.push(['Pasangan', 'Tingkat Kriteria', 'Beda Tier', 'Nilai Saaty', 'Label Linguistik', 'Arah Preferensi']);
+      for (const ja of ahpData.jejak_audit) {
+        sheet3Data.push([
+          ja.pasangan,
+          `Tier ${ja.tier_i} vs Tier ${ja.tier_j}`,
+          ja.beda_tier,
+          ja.nilai_saaty,
+          ja.label,
+          ja.arah,
+        ]);
+      }
+    }
 
     const ws3 = XLSX.utils.aoa_to_sheet(sheet3Data);
-    XLSX.utils.book_append_sheet(wb, ws3, 'Pembobotan AHP');
+    XLSX.utils.book_append_sheet(wb, ws3, 'Pembobotan Fuzzy AHP');
   }
 
   // ==========================================
