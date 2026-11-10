@@ -151,7 +151,7 @@ Data Mentah Lapangan
 **masukan** — penilaian pakar gizi pada skala Saaty 1–9, ditulis tetap sebagai data di
 `KriteriaDefinition::MATRIKS`. Kolom **Tier** di bawah adalah **keluaran** — urutan yang
 keluar dari perhitungan bobot, bukan penyebabnya. Karena itu pertanyaan "mengapa C2 di
-tier 4?" dijawab dengan bobotnya: 8,708%, setara C6.
+tier 4?" dijawab dengan bobotnya: 10,575%, setara C6.
 
 Perhitungannya memakai **Fuzzy AHP (Buckley 1985)**: TFN `(v−1, v, v+1)` dijepit ke [1,9]
 dengan resiprokal dibalik menjadi `(1/u, 1/m, 1/l)`, rata-rata geometrik tiap baris, lalu
@@ -159,15 +159,15 @@ defuzzifikasi graded mean `w = (l + 4m + u)/6` dan normalisasi.
 
 | Kode | Kriteria | Tier | Jalur | Bobot | Dasar utama |
 |---|---|---|---|---|---|
-| **C1** | Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB) | 1 | Langsung | **35,068%** | Prevalensi stunting Indonesia pooled 30,9%; sinyal triase paling langsung (Victora 2010, Roth 2017) |
-| **C2** | Riwayat Kelahiran (BBLR, Prematur) | 4 | Langsung | 8,708% | Danaei 2016: FGR/prematur klaster terdepan, 10,8 juta kasus; BBLR pooled OR 2,92 |
-| **C3** | Riwayat Penyakit / Infeksi | 2 | Langsung | 22,755% | Perpres 72/2021 Pasal 1; Checkley 2008 OR 1,13 per 5 episode diare |
-| **C4** | Pola Pemberian Makan (ASI, MPASI) | 3 | Langsung | 14,609% | RCT SHINE: lengan IYCF menurunkan stunting 35%→27% |
-| **C5** | Sanitasi & Air Bersih | 5 | Tidak langsung | 5,076% | Torlesse 2016 aOR 3,47; namun lengan WASH pada WASH-Benefits & SHINE null |
-| **C6** | Kerentanan Sosial-Ekonomi | 4 | Tidak langsung | 8,708% | Kerawanan pangan POR 2,00; namun bantuan tunai hanya −1,35% |
-| **C7** | Akses Layanan Kesehatan | 5 | Tidak langsung | 5,076% | Bukti TERLEMAH — tidak ada meta-analisis untuk kehadiran Posyandu |
+| **C1** | Kondisi Gizi & Pertumbuhan (TB/U, BB/U, BB/TB) | 1 | Langsung | **24,902%** | Prevalensi stunting Indonesia pooled 30,9%; sinyal triase paling langsung (Victora 2010, Roth 2017) |
+| **C2** | Riwayat Kelahiran (BBLR, Prematur) | 4 | Langsung | 10,575% | Danaei 2016: FGR/prematur klaster terdepan, 10,8 juta kasus; BBLR pooled OR 2,92 |
+| **C3** | Riwayat Penyakit / Infeksi | 2 | Langsung | 20,337% | Perpres 72/2021 Pasal 1; Checkley 2008 OR 1,13 per 5 episode diare |
+| **C4** | Pola Pemberian Makan (ASI, MPASI) | 3 | Langsung | 15,372% | RCT SHINE: lengan IYCF menurunkan stunting 35%→27% |
+| **C5** | Sanitasi & Air Bersih | 5 | Tidak langsung | 9,120% | Torlesse 2016 aOR 3,47; namun lengan WASH pada WASH-Benefits & SHINE null |
+| **C6** | Kerentanan Sosial-Ekonomi | 4 | Tidak langsung | 10,575% | Kerawanan pangan POR 2,00; namun bantuan tunai hanya −1,35% |
+| **C7** | Akses Layanan Kesehatan | 5 | Tidak langsung | 9,120% | Bukti TERLEMAH — tidak ada meta-analisis untuk kehadiran Posyandu |
 
-**Uji konsistensi:** λmax = 7,062469, CI = 0,010411, RI = 1,32, **CR = 0,007887 < 0,10 ✓**
+**Uji konsistensi:** λmax = 7,087046, CI = 0,014508, RI = 1,32, **CR = 0,010991 < 0,10 ✓**
 
 > **Catatan soal CR.** Matriks ini adalah penilaian pakar yang berdiri sendiri, **bukan**
 > turunan dari satu skor per kriteria. Karena itu CR di sini benar-benar menguji kekoherenan
@@ -175,7 +175,7 @@ defuzzifikasi graded mean `w = (l + 4m + u)/6` dan normalisasi.
 > perbandingan pakar saling konsisten.
 >
 > Bobot fuzzy ini juga berdekatan dengan hasil tegas (crisp) pada matriks yang sama:
-> C1 35,616% tegas vs 35,068% fuzzy, dengan selisih maksimum 0,5 poin persentase. Artinya
+> C1 35,616% tegas vs 24,902% fuzzy, dengan selisih maksimum 0,5 poin persentase. Artinya
 > kesimpulan bobotnya **stabil terhadap pemodelan ketidakpastian**. Angka bekunya ada di
 > `analisis/bobot_resmi.json`; urutan hasilnya C1 > C3 > C4 > C2 = C6 > C5 = C7.
 

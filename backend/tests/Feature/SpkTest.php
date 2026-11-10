@@ -66,9 +66,9 @@ class SpkTest extends TestCase
         // sini supaya perubahan apa pun pada matriks atau metode langsung
         // menggagalkan tes, bukan diam-diam menggeser hasil triase.
         $resmi = [
-            'C1' => 0.350684, 'C2' => 0.087080, 'C3' => 0.227551,
-            'C4' => 0.146093, 'C5' => 0.050755, 'C6' => 0.087080,
-            'C7' => 0.050755,
+            'C1' => 0.249016, 'C2' => 0.105753, 'C3' => 0.203374,
+            'C4' => 0.153715, 'C5' => 0.091195, 'C6' => 0.105753,
+            'C7' => 0.091195,
         ];
         foreach ($resmi as $kode => $nilai) {
             $this->assertEqualsWithDelta(

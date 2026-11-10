@@ -39,17 +39,42 @@ class FuzzyAhpService
 
     private const EPS = 1e-12;
 
+    /**
+     * Tabel TFN, mengikuti perhitungan manual kelompok yang sudah disetujui.
+     *
+     * Perhatikan: nilai tengah (m) adalah SETENGAH nilai Saaty, bukan nilai
+     * Saaty itu sendiri. Akibatnya Saaty 2 dan Saaty 1 bermedian sama (1), dan
+     * Saaty 9 berpuncak 4,5. Skala ini memampatkan seluruh rasio pakar menjadi
+     * setengah, sehingga bobot yang dihasilkan jauh lebih datar daripada skala
+     * TFN standar (m = v).
+     *
+     * Ditulis apa adanya sesuai perhitungan manual yang di-ACC. Jangan diganti
+     * tanpa membicarakannya dengan pembimbing, karena bobot resmi bergantung
+     * pada tabel ini.
+     */
+    private const TABEL_TFN = [
+        1 => [1.0, 1.0, 1.0],
+        2 => [0.5, 1.0, 1.5],
+        3 => [1.0, 1.5, 2.0],
+        4 => [1.5, 2.0, 2.5],
+        5 => [2.0, 2.5, 3.0],
+        6 => [2.5, 3.0, 3.5],
+        7 => [3.0, 3.5, 4.0],
+        8 => [3.5, 4.0, 4.5],
+        9 => [4.0, 4.5, 4.5],
+    ];
+
     /** TFN untuk nilai Saaty v >= 1. */
     private function fuzzGeSatu(float $v): array
     {
         if (abs($v - 1.0) < self::EPS) {
             return [1.0, 1.0, 1.0];
         }
-        return [
-            max(1.0, $v - 1.0),
-            $v,
-            min((float) KriteriaDefinition::SAATY_MAKS, $v + 1.0),
-        ];
+
+        $k = (int) round($v);
+        $k = max(1, min(9, $k));
+
+        return self::TABEL_TFN[$k];
     }
 
     /**
@@ -80,47 +105,84 @@ class FuzzyAhpService
     {
         $n = count($A);
 
-        // 1. Rata-rata geometrik fuzzy per baris
-        $r = [];
+        // 1. Jumlah ARITMETIK TFN per baris.
+        //
+        // Sebelumnya rata-rata geometrik (Buckley 1985 asli). Diganti menjadi
+        // jumlah aritmetik agar sama persis dengan perhitungan manual kelompok
+        // yang sudah di-ACC pembimbing: Si = (sum l, sum m, sum u).
+        $s = [];
         for ($i = 0; $i < $n; $i++) {
-            $acc = [1.0, 1.0, 1.0];
+            $acc = [0.0, 0.0, 0.0];
             for ($j = 0; $j < $n; $j++) {
                 [$l, $m, $u] = $this->fuzzify((float) $A[$i][$j]);
-                $acc[0] *= $l;
-                $acc[1] *= $m;
-                $acc[2] *= $u;
+                $acc[0] += $l;
+                $acc[1] += $m;
+                $acc[2] += $u;
             }
-            $r[$i] = [
-                $acc[0] ** (1.0 / $n),
-                $acc[1] ** (1.0 / $n),
-                $acc[2] ** (1.0 / $n),
-            ];
+            $s[$i] = $acc;
         }
 
-        // 2. Bobot fuzzy = r_i (x) (jumlah seluruh r)^-1
-        $sumL = array_sum(array_column($r, 0));
-        $sumM = array_sum(array_column($r, 1));
-        $sumU = array_sum(array_column($r, 2));
+        // 2. Bobot fuzzy = Si (x) (1/sum u, 1/sum m, 1/sum l)
+        $sumL = array_sum(array_column($s, 0));
+        $sumM = array_sum(array_column($s, 1));
+        $sumU = array_sum(array_column($s, 2));
 
         $tfn = [];
-        $tegas = [];
-        foreach ($r as $i => [$l, $m, $u]) {
+        foreach ($s as $i => [$l, $m, $u]) {
             $tfn[$i] = [
                 $sumU > 0 ? $l / $sumU : 0.0,
                 $sumM > 0 ? $m / $sumM : 0.0,
                 $sumL > 0 ? $u / $sumL : 0.0,
             ];
-            // 3. Defuzzifikasi graded mean
-            $tegas[$i] = ($tfn[$i][0] + 4.0 * $tfn[$i][1] + $tfn[$i][2]) / 6.0;
         }
 
-        $total = array_sum($tegas);
+        // 3. Defuzzifikasi: derajat kemungkinan (min-V), bukan graded mean.
+        $derajat = [];
+        for ($i = 0; $i < $n; $i++) {
+            $min = null;
+            for ($j = 0; $j < $n; $j++) {
+                if ($i === $j) {
+                    continue;
+                }
+                $v = $this->derajatKemungkinan($tfn[$i], $tfn[$j]);
+                $min = $min === null ? $v : min($min, $v);
+            }
+            $derajat[$i] = $min ?? 1.0;
+        }
+
+        $total = array_sum($derajat);
         $bobot = array_map(
             static fn (float $v): float => $total > 0 ? $v / $total : 0.0,
-            $tegas
+            $derajat
         );
 
-        return ['tfn' => $tfn, 'bobot' => array_values($bobot)];
+        return ['tfn' => $tfn, 'bobot' => array_values($bobot), 'derajat' => $derajat];
+    }
+
+    /**
+     * Derajat kemungkinan S_i >= S_j (Chang 1996).
+     *
+     * @param  array{0:float,1:float,2:float}  $a  S_i (l, m, u)
+     * @param  array{0:float,1:float,2:float}  $b  S_j (l, m, u)
+     */
+    private function derajatKemungkinan(array $a, array $b): float
+    {
+        [$la, $ma, $ua] = $a;
+        [$lb, $mb, $ub] = $b;
+
+        if ($ma >= $mb) {
+            return 1.0;
+        }
+        if ($lb >= $ua) {
+            return 0.0;
+        }
+
+        $penyebut = ($ma - $ua) - ($mb - $lb);
+        if (abs($penyebut) < self::EPS) {
+            return 0.0;
+        }
+
+        return ($lb - $ua) / $penyebut;
     }
 
     /**

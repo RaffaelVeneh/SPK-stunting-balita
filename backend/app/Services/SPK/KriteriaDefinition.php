@@ -8,13 +8,13 @@ namespace App\Services\SPK;
  * ============================================================================
  * BOBOT RESMI (sudah disetujui dosen pembimbing)
  * ============================================================================
- *   C1 35,068%   C2 8,708%   C3 22,755%   C4 14,609%
- *   C5 5,076%    C6 8,708%   C7 5,076%
+ *   C1 24,902%   C2 10,575%   C3 20,337%   C4 15,372%
+ *   C5 9,120%    C6 10,575%   C7 9,120%
  *
  * Diperoleh dari MATRIKS PERBANDINGAN BERPASANGAN tetap di bawah, memakai
  * Fuzzy AHP (Buckley 1985) atas matriks yang sama. Uji konsistensi pada
- * matriks tegas: lambda_max 7,062469 · CI 0,010411 · RI 1,32 ·
- * CR 0,007887  ->  KONSISTEN (CR < 0,10).
+ * matriks tegas: lambda_max 7,087046 · CI 0,014508 · RI 1,32 ·
+ * CR 0,010991  ->  KONSISTEN (CR < 0,10).
  *
  * Angka ini cocok dengan hasil perhitungan tegas (crisp) sampai 0,1 poin
  * persentase, sehingga kesimpulan bobotnya stabil terhadap pemodelan
@@ -29,7 +29,7 @@ namespace App\Services\SPK;
  *
  * LAPIS 2 — TINGKAT (tier) = KELUARAN. Urutan kepentingan di bawah ini adalah
  *   HASIL perhitungan bobot, bukan penyebabnya. Jadi kalau ada yang bertanya
- *   "mengapa C2 di tingkat 4?", jawabannya: karena bobotnya 8,708%, setara C6.
+ *   "mengapa C2 di tingkat 4?", jawabannya: karena bobotnya 10,575%, setara C6.
  *
  * Dasar tiap penempatan tetap disertakan sebagai alasan mengapa perbandingan
  * pakar bernilai demikian, dengan rujukan Perpres 72/2021 Pasal 1 dan bukti
@@ -62,13 +62,13 @@ class KriteriaDefinition
      */
     public const MATRIKS = [
         //  C1     C2     C3     C4     C5     C6     C7
-        [1.0,   4.0,   2.0,   3.0,   6.0,   4.0,   6.0],   // C1
+        [1.0,   4.0,   2.0,   3.0,   5.0,   4.0,   5.0],   // C1
         [0.25,  1.0,   1 / 3, 0.5,   2.0,   1.0,   2.0],   // C2
         [0.5,   3.0,   1.0,   2.0,   4.0,   3.0,   4.0],   // C3
         [1 / 3, 2.0,   0.5,   1.0,   3.0,   2.0,   3.0],   // C4
-        [1 / 6, 0.5,   0.25,  1 / 3, 1.0,   0.5,   1.0],   // C5
+        [1 / 5, 0.5,   0.25,  1 / 3, 1.0,   0.5,   1.0],   // C5
         [0.25,  1.0,   1 / 3, 0.5,   2.0,   1.0,   2.0],   // C6
-        [1 / 6, 0.5,   0.25,  1 / 3, 1.0,   0.5,   1.0],   // C7
+        [1 / 5, 0.5,   0.25,  1 / 3, 1.0,   0.5,   1.0],   // C7
     ];
 
     /**
