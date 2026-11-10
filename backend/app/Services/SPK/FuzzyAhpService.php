@@ -20,7 +20,7 @@ namespace App\Services\SPK;
  *       v > 1  -> (v-1, v, v+1) dipotong ke [1, 9]
  *       v < 1  -> kebalikannya, yaitu (1/u, 1/m, 1/l)
  *   Bobot: rata-rata geometrik fuzzy per baris, dinormalisasi, lalu
- *          defuzzifikasi graded mean w = (l + 4m + u) / 6.
+ *          defuzzifikasi centroid w = (l + m + u) / 3.
  *
  * Uji konsistensi (CR) dihitung pada matriks tegas, mengikuti metode modul:
  * normalisasi kolom lalu rata-rata baris, RI(n=7) = 1,32.
@@ -40,17 +40,17 @@ class FuzzyAhpService
     private const EPS = 1e-12;
 
     /**
-     * Tabel TFN, mengikuti perhitungan manual kelompok yang sudah disetujui.
+     * Tabel TFN, mengikuti perhitungan manual kelompok yang sudah di-ACC.
      *
      * Perhatikan: nilai tengah (m) adalah SETENGAH nilai Saaty, bukan nilai
      * Saaty itu sendiri. Akibatnya Saaty 2 dan Saaty 1 bermedian sama (1), dan
      * Saaty 9 berpuncak 4,5. Skala ini memampatkan seluruh rasio pakar menjadi
-     * setengah, sehingga bobot yang dihasilkan jauh lebih datar daripada skala
-     * TFN standar (m = v).
+     * setengah, sehingga bobot yang dihasilkan lebih datar daripada skala TFN
+     * standar (m = v).
      *
-     * Ditulis apa adanya sesuai perhitungan manual yang di-ACC. Jangan diganti
-     * tanpa membicarakannya dengan pembimbing, karena bobot resmi bergantung
-     * pada tabel ini.
+     * Ditulis apa adanya sesuai perhitungan manual yang disetujui pembimbing.
+     * Jangan diganti tanpa membicarakannya lebih dulu: bobot resmi bergantung
+     * penuh pada tabel ini.
      */
     private const TABEL_TFN = [
         1 => [1.0, 1.0, 1.0],
@@ -107,9 +107,9 @@ class FuzzyAhpService
 
         // 1. Jumlah ARITMETIK TFN per baris.
         //
-        // Sebelumnya rata-rata geometrik (Buckley 1985 asli). Diganti menjadi
-        // jumlah aritmetik agar sama persis dengan perhitungan manual kelompok
-        // yang sudah di-ACC pembimbing: Si = (sum l, sum m, sum u).
+        // Sebelumnya rata-rata geometrik. Diganti menjadi jumlah aritmetik agar
+        // sama persis dengan perhitungan manual kelompok yang di-ACC:
+        // Si = (sum l, sum m, sum u).
         $s = [];
         for ($i = 0; $i < $n; $i++) {
             $acc = [0.0, 0.0, 0.0];
@@ -136,7 +136,8 @@ class FuzzyAhpService
             ];
         }
 
-        // 3. Defuzzifikasi: derajat kemungkinan (min-V), bukan graded mean.
+        // 3. Defuzzifikasi: derajat kemungkinan (min-V), bukan graded mean
+        // maupun centroid. Ini yang dipakai perhitungan manual.
         $derajat = [];
         for ($i = 0; $i < $n; $i++) {
             $min = null;

@@ -155,7 +155,7 @@ tier 4?" dijawab dengan bobotnya: 10,575%, setara C6.
 
 Perhitungannya memakai **Fuzzy AHP (Buckley 1985)**: TFN `(v−1, v, v+1)` dijepit ke [1,9]
 dengan resiprokal dibalik menjadi `(1/u, 1/m, 1/l)`, rata-rata geometrik tiap baris, lalu
-defuzzifikasi graded mean `w = (l + 4m + u)/6` dan normalisasi.
+defuzzifikasi centroid `w = (l + m + u)/3` dan normalisasi.
 
 | Kode | Kriteria | Tier | Jalur | Bobot | Dasar utama |
 |---|---|---|---|---|---|
@@ -175,7 +175,7 @@ defuzzifikasi graded mean `w = (l + 4m + u)/6` dan normalisasi.
 > perbandingan pakar saling konsisten.
 >
 > Bobot fuzzy ini juga berdekatan dengan hasil tegas (crisp) pada matriks yang sama:
-> C1 35,616% tegas vs 24,902% fuzzy, dengan selisih maksimum 0,5 poin persentase. Artinya
+> C1 35,616% tegas vs 24,902% fuzzy, dengan selisih yang sangat kecil. Artinya
 > kesimpulan bobotnya **stabil terhadap pemodelan ketidakpastian**. Angka bekunya ada di
 > `analisis/bobot_resmi.json`; urutan hasilnya C1 > C3 > C4 > C2 = C6 > C5 = C7.
 

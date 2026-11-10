@@ -198,7 +198,7 @@ Yang harus benar:
 
 1. **Halaman masuk tampil** — bukan halaman 404, dan bukan tampilan tanpa gaya.
    Kalau tampil tanpa gaya, `VITE_BASE_PATH` tidak cocok dengan sub-jalurnya.
-2. **Pita tujuh bobot tampil** dengan C1 di **35,07%** — ini membuktikan SPA berhasil
+2. **Pita tujuh bobot tampil** dengan C1 di **24,90%** — ini membuktikan SPA berhasil
    memanggil API, bukan menghitung sendiri.
 3. **Buka Konsol Peramban** (F12). Tidak boleh ada galat merah.
 4. **Periksa Permintaan Jaringan**: harus ada permintaan ke

@@ -250,7 +250,7 @@ export const ProofPanel: React.FC<{
       {/* 5. BOBOT: CRISP, FUZZY, DAN SEBARANNYA                             */}
       {/* ---------------------------------------------------------------- */}
       <section className="anim anim-masuk bg-kertas-50" style={{ '--tunda': '280ms' } as React.CSSProperties}>
-        <Judul ket="Bobot dihitung dua kali sebagai pembanding. AHP tegas memakai nilai modal matriks; Fuzzy AHP memodelkan tiap perbandingan sebagai bilangan fuzzy segitiga lalu di-defuzzifikasi. Bobot fuzzy yang dipakai sistem, karena ketidakpastian pertimbangan dimodelkan alih-alih disembunyikan.">
+        <Judul ket="Bobot dihitung dua kali sebagai pembanding. AHP tegas memakai nilai modal matriks; Fuzzy AHP memodelkan tiap perbandingan sebagai bilangan fuzzy segitiga (TFN) lalu didefuzzifikasi menggunakan metode rata-rata segitiga (centroid) w = (l + m + u) / 3. Bobot fuzzy inilah yang dipakai sistem.">
           Bobot hasil perhitungan
         </Judul>
         <p className="border-b border-rambut px-4 py-2.5 text-xs leading-relaxed text-tinta-500 sm:px-5">

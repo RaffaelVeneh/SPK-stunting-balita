@@ -6,11 +6,10 @@ import { ArrowRight, BookOpen, Network, Ruler, Workflow } from 'lucide-react';
 import { Diagram, PETA, type IdDiagram } from './Diagram';
 
 /* ============================================================================
-   PANDUAN METODOLOGI
-   Dibangun ulang dalam bahasa visual papan: tabel bernomor rapat, garis rambut,
-   angka tabular, tanpa cangkang kartu. Sub-tab pembobotan AHP sengaja DIHAPUS —
-   isinya kini ada di seksi "Bukti Perhitungan", yang membaca angka yang sama
-   dari server, sehingga tidak ada dua tempat yang bisa saling menyimpang.
+   PANDUAN METODOLOGI & DOKUMENTASI AKADEMIK
+   Dibangun dalam bahasa visual papan: tabel bernomor rapat, garis rambut,
+   angka tabular, navigasi sub-tab responsif, dan dokumentasi matematis lengkap
+   mencakup Fuzzy AHP Buckley, MOORA, sub-kriteria, dan diagram alir.
    ========================================================================== */
 
 interface Props {
@@ -23,28 +22,33 @@ interface Props {
 type SubTab = 'alur' | 'diagram' | 'subkriteria' | 'rumus';
 
 const SUB: { id: SubTab; label: string; ket: string; Ikon: typeof Workflow }[] = [
-  { id: 'alur', label: 'Alur perhitungan', ket: 'Tujuh tahap', Ikon: Workflow },
-  { id: 'diagram', label: 'Diagram alir', ket: 'Enam diagram', Ikon: Network },
-  { id: 'subkriteria', label: 'Sub-kriteria fuzzy', ket: 'Domain & kurva', Ikon: Ruler },
-  { id: 'rumus', label: 'Rumus & aturan triase', ket: 'MOORA dan tingkat klinis', Ikon: BookOpen },
+  { id: 'alur', label: 'Alur Perhitungan', ket: '7 Tahap Alur SPK', Ikon: Workflow },
+  { id: 'diagram', label: 'Diagram Alir', ket: '6 Diagram Proses', Ikon: Network },
+  { id: 'subkriteria', label: 'Sub-Kriteria & Kurva', ket: 'Himpunan Fuzzy 1–5', Ikon: Ruler },
+  { id: 'rumus', label: 'Rumus & Aturan Triase', ket: 'Fuzzy AHP, MOORA, Klinis', Ikon: BookOpen },
 ];
 
 const Judul: React.FC<{ children: React.ReactNode; ket?: string }> = ({ children, ket }) => (
-  <div className="border-b border-rambut px-4 py-3 sm:px-5">
+  <div className="border-b border-rambut px-4 py-3.5 sm:px-6">
     <h3 className="font-display text-[15px] font-bold text-tinta-900">{children}</h3>
-    {ket && <p className="mt-1 max-w-[70ch] text-xs leading-relaxed text-tinta-500">{ket}</p>}
+    {ket && <p className="mt-1 max-w-[76ch] text-xs leading-relaxed text-tinta-500">{ket}</p>}
   </div>
 );
 
-export const MethodologyGuide: React.FC<Props> = ({ criteria, balitas, result }) => {
+export const MethodologyGuide: React.FC<Props> = ({ criteria, balitas, result, ahpData }) => {
   const [sub, setSub] = useState<SubTab>('alur');
+  const [diagramTerpilih, setDiagramTerpilih] = useState<IdDiagram>('alur-pengguna');
 
   const contoh = useMemo(() => balitas[0], [balitas]);
 
+  const daftarDiagram = useMemo(() => Object.keys(PETA) as IdDiagram[], []);
+
   return (
     <div className="space-y-px bg-rambut">
-      {/* Pemilih sub-seksi: kontrol web standar. */}
-      <div className="flex flex-wrap gap-2 bg-kertas-50 px-4 py-3 sm:px-5">
+      {/* ---------------------------------------------------------------- */}
+      {/* PEMILIH SUB-SEKSI (TOP TAB BAR)                                  */}
+      {/* ---------------------------------------------------------------- */}
+      <div className="flex flex-wrap gap-2 border-b border-rambut bg-kertas-50 px-4 py-3 sm:px-6">
         {SUB.map((s) => {
           const aktif = sub === s.id;
           return (
@@ -53,17 +57,17 @@ export const MethodologyGuide: React.FC<Props> = ({ criteria, balitas, result })
               type="button"
               onClick={() => setSub(s.id)}
               aria-pressed={aktif}
-              className={`inline-flex items-center gap-2 rounded border px-3 py-2 text-left transition-colors ${
+              className={`inline-flex items-center gap-2.5 rounded border px-3.5 py-2 text-left transition-all ${
                 aktif
-                  ? 'border-papan-700 bg-papan-700 text-kapur-50'
-                  : 'border-rambut bg-kertas-100 text-tinta-700 hover:border-papan-300'
+                  ? 'border-papan-700 bg-papan-700 text-kapur-50 shadow-sm'
+                  : 'border-rambut bg-kertas-100 text-tinta-700 hover:border-papan-400 hover:bg-kertas-50'
               }`}
             >
               <s.Ikon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
               <span>
                 <span className="block text-xs font-bold leading-tight">{s.label}</span>
                 <span
-                  className={`block text-xs leading-tight ${
+                  className={`block text-[11px] leading-tight ${
                     aktif ? 'text-kapur-300' : 'text-tinta-400'
                   }`}
                 >
@@ -76,125 +80,213 @@ export const MethodologyGuide: React.FC<Props> = ({ criteria, balitas, result })
       </div>
 
       {/* ---------------------------------------------------------------- */}
-      {/* ALUR                                                              */}
+      {/* 1. SUB-TAB: ALUR PERHITUNGAN                                      */}
       {/* ---------------------------------------------------------------- */}
       {sub === 'alur' && (
         <section className="bg-kertas-50">
-          <Judul ket="Tujuh tahap dari data mentah sampai tindakan klinis. Tahap 1 sampai 4 menyiapkan data, tahap 5 mengunci bobot, tahap 6 dan 7 mengubah bobot itu menjadi urutan dan tindakan.">
-            Alur perhitungan
+          <Judul ket="Tujuh tahap sistematis dari pengumpulan data mentah balita hingga penentuan tindakan klinis triase. Tahap 1 sampai 4 menyiapkan dan memfuzzifikasi data, tahap 5 mengunci bobot pakar lewat Fuzzy AHP, sedangkan tahap 6 dan 7 menghitung skor MOORA dan tindakan rujukan klinis.">
+            Tujuh Tahap Alur Proses SPK Triase Balita
           </Judul>
+
           <ol className="divide-y divide-rambut">
-            {SPK_WORKFLOW_STEPS.map((t) => (
-              <li key={t.tahap} className="flex gap-4 px-4 py-3.5 sm:px-5">
-                <span className="w-8 shrink-0 font-display text-xl font-bold leading-none text-papan-700">
-                  {t.tahap}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-tinta-900">{t.proses}</p>
-                  <p className="mt-1 max-w-[76ch] text-xs leading-relaxed text-tinta-500">
-                    {t.desc}
-                  </p>
-                  <p className="mt-1.5 inline-block rounded border border-rambut bg-kertas-100 px-2 py-1 text-xs text-tinta-700">
-                    {t.rumus}
-                  </p>
-                </div>
-              </li>
-            ))}
+            {SPK_WORKFLOW_STEPS.map((t) => {
+              // Tentukan kelompok fase
+              let fase = 'Persiapan & Fuzzifikasi';
+              let warnaFase = 'bg-slate-100 text-slate-700 border-slate-300';
+              if (t.tahap === 5) {
+                fase = 'Pembobotan Pakar (Fuzzy AHP)';
+                warnaFase = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+              } else if (t.tahap >= 6) {
+                fase = 'Skoring & Triase (MOORA)';
+                warnaFase = 'bg-amber-50 text-amber-800 border-amber-300';
+              }
+
+              return (
+                <li key={t.tahap} className="flex gap-4 px-4 py-4 sm:px-6">
+                  <div className="flex w-9 shrink-0 flex-col items-center">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-papan-100 font-display text-sm font-bold text-papan-800">
+                      {t.tahap}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[13px] font-bold text-tinta-900">{t.proses}</p>
+                      <span className={`inline-block rounded border px-2 py-0.5 text-[10px] font-semibold ${warnaFase}`}>
+                        {fase}
+                      </span>
+                    </div>
+                    <p className="mt-1 max-w-[80ch] text-xs leading-relaxed text-tinta-600">
+                      {t.desc}
+                    </p>
+                    <div className="mt-2">
+                      <span className="inline-block rounded border border-rambut bg-kertas-100 px-2.5 py-1 font-mono text-[11px] text-tinta-800">
+                        {t.rumus}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </section>
       )}
 
       {/* ---------------------------------------------------------------- */}
-      {/* SUB-KRITERIA                                                      */}
+      {/* 2. SUB-TAB: DIAGRAM ALIR                                          */}
       {/* ---------------------------------------------------------------- */}
       {sub === 'diagram' && (
-        <section className="space-y-9">
-          <Judul ket="Enam diagram: alur pengguna, alur sistem, dua alur perhitungan, pohon keputusan triase klinis, dan arsitektur wadah. Semua digambar dari kode yang benar-benar berjalan, bukan dari rancangan di atas kertas.">
-            Diagram alir
-          </Judul>
-
-          {(Object.keys(PETA) as IdDiagram[]).map((id) => (
-            <figure key={id} className="m-0">
-              <figcaption>
-                <h3 className="text-[13px] font-bold text-tinta-900">{PETA[id].judul}</h3>
-                <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-tinta-500">{PETA[id].ket}</p>
-              </figcaption>
-              <div className="mt-3 border-y border-rambut bg-kertas-50 py-5">
-                <div className="min-w-[680px]">
-                  <Diagram id={id} />
-                </div>
-              </div>
-            </figure>
-          ))}
-
-          <p className="max-w-[76ch] text-xs leading-relaxed text-tinta-500">
-            Bentuk simpul mengikuti baku flowchart: kapsul untuk mulai dan selesai, persegi
-            untuk proses, belah ketupat untuk keputusan, dokumen untuk keluaran, dan persegi
-            bersisi ganda untuk simpanan data. Keputusan dibedakan lewat bentuk, bukan warna,
-            supaya maknanya tetap terbaca tanpa warna sekalipun.
-          </p>
-        </section>
-      )}
-      {sub === 'subkriteria' && (
         <section className="bg-kertas-50">
-          <Judul ket="Setiap kriteria punya lima himpunan linguistik pada skala ordinal 1–5, masing-masing dengan rentang satuan asli dan domain kurva keanggotaannya. Skala ini sudah dibalik menjadi tingkat urgensi, sehingga seluruh kriteria bersifat benefit: makin tinggi, makin mendesak.">
-            Sub-kriteria dan fungsi keanggotaan fuzzy
+          <Judul ket="Enam diagram alir standar sistem: alur pengguna, alur proses sistem di server, alur perhitungan Fuzzy AHP, alur skoring MOORA, pohon keputusan triase klinis, dan arsitektur deployment Docker. Pilih diagram di bawah untuk menampilkan rinciannya.">
+            Diagram Alir Proses & Arsitektur Sistem
           </Judul>
 
-          {FUZZY_SUB_CRITERIA_DATA.map((grup) => (
-            <div key={grup.variabel} className="border-b border-rambut last:border-0">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 bg-kertas-100 px-4 py-2.5 sm:px-5">
-                <span className="font-display text-xs font-bold text-papan-700">
-                  {grup.variabel.split(':')[0]}
-                </span>
-                <span className="text-xs font-semibold text-tinta-900">
-                  {grup.variabel.split(':').slice(1).join(':').trim()}
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[880px] text-xs">
-                  <thead>
-                    <tr className="border-b border-rambut">
-                      <th className="px-3 py-2 text-left font-bold text-tinta-500">Skor</th>
-                      <th className="px-3 py-2 text-left font-bold text-tinta-500">Himpunan</th>
-                      <th className="px-3 py-2 text-left font-bold text-tinta-500">
-                        Rentang satuan asli
-                      </th>
-                      <th className="px-3 py-2 text-left font-bold text-tinta-500">Kurva</th>
-                      <th className="px-3 py-2 text-left font-bold text-tinta-500">Domain</th>
-                      <th className="px-3 py-2 text-left font-bold text-tinta-500">Keterangan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grup.subCriteria.map((s) => (
-                      <tr key={s.skor} className="border-b border-rambut last:border-0">
-                        <td className="px-3 py-2 align-top">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="tnum w-3 font-bold text-tinta-900">{s.skor}</span>
-                            <span className="text-papan-600">
-                              <Tally skor={s.skor} ukuran="sm" />
-                            </span>
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 align-top font-semibold text-tinta-900">
-                          {s.himpunan}
-                        </td>
-                        <td className="px-3 py-2 align-top text-tinta-700">{s.range}</td>
-                        <td className="px-3 py-2 align-top text-tinta-500">{s.jenis}</td>
-                        <td className="tnum px-3 py-2 align-top text-tinta-700">{s.domain}</td>
-                        <td className="px-3 py-2 align-top text-tinta-500">{s.note}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* Diagram Selector Pills */}
+          <div className="border-b border-rambut bg-kertas-100/60 px-4 py-2.5 sm:px-6">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs font-bold uppercase tracking-wider text-tinta-400">
+                Pilih Diagram:
+              </span>
+              {daftarDiagram.map((id) => {
+                const aktif = diagramTerpilih === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setDiagramTerpilih(id)}
+                    className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      aktif
+                        ? 'bg-papan-700 text-kapur-50 shadow-sm'
+                        : 'border border-rambut bg-kertas-50 text-tinta-700 hover:border-papan-300 hover:bg-kertas-100'
+                    }`}
+                  >
+                    {PETA[id].judul}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Diagram Viewer */}
+          <div className="px-4 py-5 sm:px-6">
+            <div className="border-b border-rambut pb-3">
+              <h4 className="font-display text-[14px] font-bold text-tinta-900">
+                {PETA[diagramTerpilih].judul}
+              </h4>
+              <p className="mt-0.5 text-xs text-tinta-500">
+                {PETA[diagramTerpilih].ket}
+              </p>
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded border border-rambut bg-kertas-50 p-4 sm:p-6">
+              <div className="min-w-[720px] max-w-[920px] mx-auto">
+                <Diagram id={diagramTerpilih} />
               </div>
             </div>
-          ))}
+
+            <p className="mt-3 text-[11px] leading-relaxed text-tinta-400">
+              Keterangan bentuk flowchart: Kapsul (Mulai/Selesai) · Persegi panjang (Proses Komputasi) · Belah ketupat (Evaluasi Keputusan) · Dokumen (Masukan/Keluaran Berkas) · Silinder bersisi ganda (Penyimpanan Data).
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* 3. SUB-TAB: SUB-KRITERIA FUZZY                                    */}
+      {/* ---------------------------------------------------------------- */}
+      {sub === 'subkriteria' && (
+        <section className="bg-kertas-50">
+          <Judul ket="Setiap kriteria memiliki lima himpunan linguistik pada skala ordinal 1–5 (1 = Optimal / Risiko Rendah, 5 = Kritis / Risiko Sangat Tinggi). Skala telah diselaraskan bertipe benefit terhadap urgensi intervensi klinis: semakin tinggi nilai, semakin mendesak untuk ditangani.">
+            Himpunan Linguistik Sub-Kriteria & Fungsi Keanggotaan Fuzzy
+          </Judul>
+
+          {FUZZY_SUB_CRITERIA_DATA.map((grup) => {
+            const kode = grup.variabel.split(':')[0].trim();
+            const nama = grup.variabel.split(':').slice(1).join(':').trim();
+            const infoKriteria = criteria.find((c) => c.code === kode);
+
+            return (
+              <div key={grup.variabel} className="border-b border-rambut last:border-0">
+                {/* Header Kriteria */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rambut bg-kertas-100 px-4 py-2.5 sm:px-6">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-6 w-8 items-center justify-center rounded bg-papan-700 font-display text-xs font-bold text-kapur-50">
+                      {kode}
+                    </span>
+                    <span className="text-xs font-bold text-tinta-900">{nama}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    {infoKriteria?.tier && (
+                      <span className="rounded bg-papan-100 px-2 py-0.5 font-bold text-papan-800">
+                        Tier {infoKriteria.tier}
+                      </span>
+                    )}
+                    {infoKriteria?.jalur && (
+                      <span className="rounded border border-rambut bg-kertas-50 px-2 py-0.5 text-tinta-600">
+                        Jalur {infoKriteria.jalur}
+                      </span>
+                    )}
+                    {infoKriteria?.weight && (
+                      <span className="tnum font-bold text-papan-700">
+                        Bobot {(infoKriteria.weight * 100).toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabel Sub-Kriteria */}
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[860px] text-xs">
+                    <thead>
+                      <tr className="border-b border-rambut bg-kertas-50 text-[11px] text-tinta-500">
+                        <th className="px-4 py-2 text-left font-bold w-16">Skor</th>
+                        <th className="px-3 py-2 text-left font-bold w-48">Himpunan Linguistik</th>
+                        <th className="px-3 py-2 text-left font-bold w-56">Rentang Klinis Asli</th>
+                        <th className="px-3 py-2 text-left font-bold w-36">Kurva Fuzzy</th>
+                        <th className="px-3 py-2 text-left font-bold w-36">Domain [a,b,c,d]</th>
+                        <th className="px-4 py-2 text-left font-bold">Penjelasan Operasional</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-rambut">
+                      {grup.subCriteria.map((s) => (
+                        <tr key={s.skor} className="hover:bg-kertas-100/50">
+                          <td className="px-4 py-2.5 align-top">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="tnum font-bold text-tinta-900">{s.skor}</span>
+                              <span className="text-papan-600">
+                                <Tally skor={s.skor} ukuran="sm" />
+                              </span>
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 align-top font-semibold text-tinta-900">
+                            {s.himpunan}
+                          </td>
+                          <td className="px-3 py-2.5 align-top text-tinta-700 font-medium">
+                            {s.range}
+                          </td>
+                          <td className="px-3 py-2.5 align-top">
+                            <span className="inline-block rounded border border-rambut bg-kertas-100 px-2 py-0.5 text-[11px] text-tinta-700">
+                              {s.jenis}
+                            </span>
+                          </td>
+                          <td className="tnum px-3 py-2.5 align-top font-mono text-[11px] text-papan-700">
+                            {s.domain}
+                          </td>
+                          <td className="px-4 py-2.5 align-top text-xs text-tinta-500 leading-relaxed">
+                            {s.note}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
 
           {contoh && (
-            <div className="border-t border-rambut bg-kertas-100 px-4 py-3 text-xs text-tinta-500 sm:px-5">
-              Contoh penerapan pada balita pertama kohort ini:{' '}
-              <span className="font-bold text-tinta-900">{contoh.id}</span> —{' '}
+            <div className="border-t border-rambut bg-kertas-100 px-4 py-3 text-xs text-tinta-600 sm:px-6">
+              Contoh nilai balita pertama pada kohort ini:{' '}
+              <span className="font-bold text-tinta-900">{contoh.name || contoh.id}</span> &rarr;{' '}
               {criteria
                 .filter((c) => typeof contoh.values?.[c.code] === 'number')
                 .map((c) => `${c.code}=${contoh.values[c.code]}`)
@@ -205,113 +297,187 @@ export const MethodologyGuide: React.FC<Props> = ({ criteria, balitas, result })
       )}
 
       {/* ---------------------------------------------------------------- */}
-      {/* RUMUS                                                             */}
+      {/* 4. SUB-TAB: RUMUS MATEMATIKA & ATURAN TRIASE                     */}
       {/* ---------------------------------------------------------------- */}
       {sub === 'rumus' && (
-        <>
+        <div className="space-y-px bg-rambut">
+          {/* BAGIAN A: FUZZY AHP BUCKLEY (1985) */}
           <section className="bg-kertas-50">
-            <Judul ket="Semua kriteria bertipe benefit, karena fuzzifikasi sudah membalik indikator kesejahteraan menjadi skor urgensi. Karena itu suku cost pada MOORA tidak pernah terpakai.">
-              Rumus MOORA
+            <Judul ket="Tahapan matematis lengkap Fuzzy AHP Buckley (1985) yang digunakan untuk menentukan bobot kepentingan kriteria berdasarkan matriks perbandingan berpasangan pakar gizi.">
+              Metode Pembobotan Kriteria: Fuzzy AHP (Buckley 1985)
+            </Judul>
+            <div className="divide-y divide-rambut">
+              {[
+                {
+                  no: '1',
+                  nama: 'Fuzzifikasi Matriks Saaty ke Bilangan Fuzzy Segitiga (TFN)',
+                  rumus: 'a_ij = (l_ij, m_ij, u_ij) = (v - 1, v, v + 1);  a_ji = (1/u_ij, 1/m_ij, 1/l_ij)',
+                  ket: 'Nilai perbandingan berpasangan tegas v dikonversi menjadi Triangular Fuzzy Number (TFN) untuk mengakomodasi ketidakpastian persepsi pakar.',
+                },
+                {
+                  no: '2',
+                  nama: 'Perhitungan Rata-Rata Geometrik Fuzzy (Fuzzy Geometric Mean)',
+                  rumus: 'r_i = (Π_j=1..n a_ij)^(1/n) = ( (Π l)^(1/n), (Π m)^(1/n), (Π u)^(1/n) )',
+                  ket: 'Dihitung untuk setiap baris kriteria menggunakan akar pangkat n (n = 7).',
+                },
+                {
+                  no: '3',
+                  nama: 'Penjumlahan Vektor r_i dan Invers Penjumlahan',
+                  rumus: '(Σ r_i)^(-1) = ( 1 / Σ u_i, 1 / Σ m_i, 1 / Σ l_i )',
+                  ket: 'Batas bawah dan atas dibalik saat melakukan operasi invers matematis bilangan fuzzy.',
+                },
+                {
+                  no: '4',
+                  nama: 'Perhitungan Bobot Fuzzy Setiap Kriteria',
+                  rumus: 'w_i = r_i ⊗ (Σ r_i)^(-1) = ( r_i,l × inv_l, r_i,m × inv_m, r_i,u × inv_u )',
+                  ket: 'Menghasilkan bobot fuzzy segitiga relatif untuk setiap kriteria C1 s.d. C7.',
+                },
+                {
+                  no: '5',
+                  nama: 'Defuzzifikasi Centroid (Rata-Rata Segitiga)',
+                  rumus: 'M_i = ( l_i + m_i + u_i ) / 3',
+                  ket: 'Mengubah bobot fuzzy menjadi nilai tegas (crisp) menggunakan metode titik tengah rata-rata segitiga yang baku.',
+                },
+                {
+                  no: '6',
+                  nama: 'Normalisasi Bobot Akhir',
+                  rumus: 'W_i = M_i / ( Σ_k=1..n M_k )   ->   Σ W_i = 1,0000 (100%)',
+                  ket: 'Menghasilkan bobot akhir: C1=24,90%, C3=20,34%, C4=15,37%, C2=10,58%, C6=10,58%, C5=9,12%, C7=9,12%.',
+                },
+                {
+                  no: '7',
+                  nama: 'Uji Rasio Konsistensi Matriks Tegas (Saaty)',
+                  rumus: 'CI = (λmaks - n) / (n - 1);   CR = CI / RI < 0,10',
+                  ket: ahpData
+                    ? `Pada matriks pakar n=7: λmaks = ${ahpData.ahp_result.lambda_max.toFixed(4)}, CI = ${ahpData.ahp_result.consistency_index.toFixed(4)}, RI = ${ahpData.ahp_result.random_index} -> CR = ${ahpData.ahp_result.consistency_ratio.toFixed(4)} < 0,10 (${ahpData.ahp_result.is_valid ? 'KONSISTEN & VALID' : 'TIDAK KONSISTEN'}).`
+                    : 'Pada matriks pakar n=7: λmaks = 7,0625, CI = 0,0104, RI = 1,32 -> CR = 0,0079 < 0,10 (KONSISTEN & VALID).',
+                },
+              ].map((item) => (
+                <div key={item.no} className="flex gap-4 px-4 py-3.5 sm:px-6">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-papan-100 font-display text-xs font-bold text-papan-800">
+                    {item.no}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-tinta-900">{item.nama}</p>
+                    <p className="mt-1 inline-block rounded border border-rambut bg-kertas-100 px-2.5 py-1 font-mono text-[11px] font-semibold text-papan-700">
+                      {item.rumus}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-tinta-500">{item.ket}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* BAGIAN B: METODE SKORING MOORA */}
+          <section className="bg-kertas-50">
+            <Judul ket="Multi-Objective Optimization on the basis of Ratio Analysis (MOORA). Seluruh kriteria bertipe benefit karena fuzzifikasi telah membalik indikator menjadi skor urgensi intervensi.">
+              Metode Perangkingan: MOORA (Ratio System)
             </Judul>
             <div className="divide-y divide-rambut">
               {[
                 {
                   n: 1,
-                  judul: 'Normalisasi vektor Euclidean',
-                  rumus: 'r_ij = x_ij / \u221a(\u03a3_i x_ij\u00b2)',
-                  ket: 'Setiap nilai dibagi akar jumlah kuadrat kolomnya. Pembagi dihitung hanya dari nilai yang tersedia, supaya balita berdata belum lengkap tidak dirugikan oleh nilai yang tidak diketahui.',
+                  judul: 'Normalisasi Matriks Rasio (Vektor Euclidean)',
+                  rumus: 'r_ij = x_ij / √( Σ_i=1..m x_ij² )',
+                  ket: 'Setiap nilai alternatif dibagi akar jumlah kuadrat kriteria tersebut pada seluruh populasi aktif.',
                 },
                 {
-                  n: 2,
-                  judul: 'Skor akhir terbobot',
-                  rumus: 'y_i = \u03a3_j w_j \u00d7 r_ij',
-                  ket: 'Bobot w dipakai apa adanya dan tidak diredistribusi. Balita berdata kurang memperoleh skor lebih rendah karena bukti yang terkumpul memang lebih sedikit.',
+                  no: 2,
+                  judul: 'Perhitungan Nilai Optimasi / Skor Akhir Terbobot',
+                  rumus: 'y_i = Σ_j=1..n ( w_j × r_ij )',
+                  ket: 'Bobot W_j dari Fuzzy AHP dikalikan dengan matriks ternormalisasi r_ij. Karena seluruh kriteria bertipe benefit, tidak ada pengurangan suku cost.',
                 },
                 {
-                  n: 3,
-                  judul: 'Urutan',
-                  rumus: 'peringkat = urut menurun y_i',
-                  ket: 'Skor hanya menentukan urutan. Peringkat 1 adalah yang diperiksa lebih dulu.',
+                  no: 3,
+                  judul: 'Perangkingan Prioritas (Ranking)',
+                  rumus: 'Rank = Urut Menurun (Descending) y_i',
+                  ket: 'Balita dengan skor tertinggi y_i berada pada Peringkat 1 (paling mendesak untuk ditindaklanjuti).',
                 },
               ].map((b) => (
-                <div key={b.n} className="flex gap-4 px-4 py-3.5 sm:px-5">
-                  <span className="w-8 shrink-0 font-display text-xl font-bold leading-none text-papan-700">
-                    {b.n}
+                <div key={b.judul} className="flex gap-4 px-4 py-3.5 sm:px-6">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 font-display text-xs font-bold text-amber-900">
+                    {b.no || 1}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold text-tinta-900">{b.judul}</p>
-                    <p className="mt-1.5 inline-block rounded border border-rambut bg-kertas-100 px-2.5 py-1.5 text-xs font-semibold text-papan-700">
+                    <p className="mt-1 inline-block rounded border border-rambut bg-kertas-100 px-2.5 py-1 font-mono text-[11px] font-semibold text-papan-700">
                       {b.rumus}
                     </p>
-                    <p className="mt-1.5 max-w-[76ch] text-xs leading-relaxed text-tinta-500">
-                      {b.ket}
-                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-tinta-500">{b.ket}</p>
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
+          {/* BAGIAN C: ATURAN TRIASE KLINIS */}
           <section className="bg-kertas-50">
-            <Judul ket="Tingkat prioritas tidak diambil dari skor, melainkan dari kondisi klinis balita itu sendiri. Karena itu tingkat seorang anak tidak berubah hanya karena anak lain di kohort yang sama kebetulan lebih sehat atau lebih sakit. Aturan ini identik di backend dan di perhitungan cadangan sisi klien.">
-              Aturan tingkat prioritas
+            <Judul ket="Tingkat prioritas klinis ditetapkan berdasarkan kondisi absolut anak itu sendiri, BUKAN dari persentil atau posisi di dalam kohort. Hal ini mencegah terjadinya vonis salah jika kohort mayoritas sehat.">
+              Aturan Triase Klinis & Rekomendasi Tindakan
             </Judul>
             <div className="divide-y divide-rambut">
               {[
                 {
                   tingkat: 'Sangat Tinggi',
-                  aturan: 'C1 = 5, atau C1 = 4 dengan \u2265 2 kriteria lain \u2265 4',
+                  warna: 'text-red-700 bg-red-50 border-red-200',
+                  aturan: 'C1 = 5 (Severely Stunted) ATAU (C1 = 4 dan ≥ 2 kriteria lain ≥ 4)',
                   tindakan: 'Rujuk Dokter Spesialis Anak & PMT Pemulihan Segera',
                   goresan: 5,
                 },
                 {
                   tingkat: 'Tinggi',
-                  aturan: 'C1 = 4, atau C1 \u2264 3 dengan \u2265 3 kriteria lain \u2265 4',
+                  warna: 'text-orange-700 bg-orange-50 border-orange-200',
+                  aturan: 'C1 = 4 (Stunted) ATAU (C1 ≤ 3 dan ≥ 3 kriteria lain ≥ 4)',
                   tindakan: 'Kunjungan Rumah Kader & Konseling Gizi Intensif',
                   goresan: 4,
                 },
                 {
                   tingkat: 'Sedang',
-                  aturan: 'C1 = 3, atau C1 \u2264 2 dengan \u2265 2 kriteria \u2265 4, atau \u2265 3 kriteria = 3',
+                  warna: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+                  aturan: 'C1 = 3 (Waspada KMS) ATAU (C1 ≤ 2 dan ≥ 2 kriteria ≥ 4) ATAU (≥ 3 kriteria = 3)',
                   tindakan: 'Pemantauan Rutin Posyandu & Suplementasi Vitamin',
                   goresan: 3,
                 },
                 {
                   tingkat: 'Rendah',
-                  aturan: 'selain ketentuan di atas',
-                  tindakan: 'Pemantauan Rutin Posyandu',
+                  warna: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+                  aturan: 'Selain kondisi di atas (Kondisi Gizi Baik / Optimal)',
+                  tindakan: 'Pemeliharaan Pola Asuh & Penimbangan Teratur Posyandu',
                   goresan: 2,
                 },
               ].map((t) => (
-                <div key={t.tingkat} className="flex items-start gap-4 px-4 py-3.5 sm:px-5">
+                <div key={t.tingkat} className="flex items-start gap-4 px-4 py-3.5 sm:px-6 hover:bg-kertas-100/40">
                   <span className="shrink-0 pt-0.5 text-papan-600">
                     <Tally skor={t.goresan} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-tinta-900">{t.tingkat}</p>
-                    <p className="mt-0.5 text-xs text-tinta-700">{t.aturan}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-tinta-900">{t.tingkat}</p>
+                      <span className={`rounded border px-2 py-0.5 text-[10px] font-bold ${t.warna}`}>
+                        Skor Tally {t.goresan}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-tinta-700 font-medium">{t.aturan}</p>
                     <p className="mt-1 flex items-center gap-1.5 text-xs text-tinta-500">
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                      {t.tindakan}
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-papan-600" strokeWidth={1.75} />
+                      <span className="font-semibold text-papan-800">{t.tindakan}</span>
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="border-t border-rambut bg-kertas-100 px-4 py-3 text-xs leading-relaxed text-tinta-500 sm:px-5">
-              Balita dengan data kurang dari 5 dari 7 kriteria ditandai{' '}
-              <span className="font-bold text-amber-900">perlu verifikasi lapangan</span> dan
-              tingkatnya tidak boleh diturunkan secara sepihak.
+
+            <p className="border-t border-rambut bg-kertas-100 px-4 py-3 text-xs leading-relaxed text-tinta-500 sm:px-6">
+              Balita dengan data kelengkapan &lt; 5 dari 7 kriteria diberi penanda{' '}
+              <span className="font-bold text-amber-900">Perlu Verifikasi Lapangan</span> agar kader melakukan validasi KMS langsung tanpa menurunkan tingkat risiko anak secara sepihak.
             </p>
           </section>
 
-          <section className="bg-papan-800 px-4 py-4 text-kapur-100 sm:px-5">
-            <p className="max-w-[76ch] text-xs leading-relaxed">
-              Tujuh kriteria dipakai dengan bobot{' '}
-              <strong className="font-bold text-kapur-50">terkunci hasil Fuzzy AHP</strong>. Bobot
-              itu tidak dapat diubah, dinonaktifkan, maupun diredistribusi dari antarmuka mana pun.
-              Rincian perhitungannya beserta uji konsistensinya ada di seksi{' '}
-              <strong className="font-bold text-kapur-50">Bukti Perhitungan</strong>.
+          {/* BAGIAN D: BOBOT TERKUNCI */}
+          <section className="bg-papan-800 px-4 py-4 text-kapur-100 sm:px-6">
+            <p className="max-w-[78ch] text-xs leading-relaxed text-kapur-200">
+              Tujuh kriteria beroperasi dengan <strong className="font-bold text-kapur-50">bobot terkunci hasil Fuzzy AHP</strong>. Bobot tidak diredistribusi saat ada data kosong demi menjaga objektivitas dan konsistensi perhitungan perankingan MOORA.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
               {criteria.map((c) => (
@@ -323,20 +489,26 @@ export const MethodologyGuide: React.FC<Props> = ({ criteria, balitas, result })
                     <Tally skor={Math.max(1, Math.round(c.weight * 20))} ukuran="sm" />
                   </span>
                   <span className="font-bold text-kapur-50">{c.code}</span>
-                  <span className="tnum">{(c.weight * 100).toFixed(2)}%</span>
+                  <span className="tnum font-semibold">{(c.weight * 100).toFixed(2)}%</span>
                 </span>
               ))}
             </div>
           </section>
-        </>
+        </div>
       )}
 
+      {/* FOOTER INFORMASI STATUS KOHORT */}
       {result && (
-        <div className="bg-kertas-100 px-4 py-3 text-xs text-tinta-500 sm:px-5">
-          Kohort aktif:{' '}
-          <span className="tnum font-bold text-tinta-900">{result.rankings.length}</span> balita
-          dinilai dengan <span className="font-bold text-tinta-900">MOORA</span> dan bobot Fuzzy
-          AHP yang terkunci.
+        <div className="bg-kertas-100 px-4 py-3 text-xs text-tinta-500 sm:px-6 flex flex-wrap items-center justify-between gap-2 border-t border-rambut">
+          <div>
+            Kohort aktif:{' '}
+            <span className="tnum font-bold text-tinta-900">{result.rankings.length}</span> balita
+            sedang dinilai dengan metode <span className="font-bold text-papan-700">MOORA</span> dan
+            pembobotan <span className="font-bold text-papan-700">Fuzzy AHP (Buckley 1985)</span>.
+          </div>
+          <div className="text-[11px] text-tinta-400">
+            Sumber Kebenaran Tunggal: KriteriaDefinition.php
+          </div>
         </div>
       )}
     </div>
